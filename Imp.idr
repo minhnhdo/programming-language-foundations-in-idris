@@ -32,6 +32,54 @@ data AExp : Type where
   AMinus : AExp -> AExp -> AExp
   AMult : AExp -> AExp -> AExp
 
+Uninhabited (ANum _ = AId _) where
+  uninhabited Refl impossible
+
+Uninhabited (ANum _ = APlus _ _) where
+  uninhabited Refl impossible
+
+Uninhabited (ANum _ = AMinus _ _) where
+  uninhabited Refl impossible
+
+Uninhabited (ANum _ = AMult _ _) where
+  uninhabited Refl impossible
+
+Uninhabited (APlus _ _ = ANum _) where
+  uninhabited Refl impossible
+
+Uninhabited (AMinus _ _ = ANum _) where
+  uninhabited Refl impossible
+
+Uninhabited (AMult _ _ = ANum _) where
+  uninhabited Refl impossible
+
+Uninhabited (AId _ = ANum _) where
+  uninhabited Refl impossible
+
+Uninhabited (AId _ = APlus _ _) where
+  uninhabited Refl impossible
+
+Uninhabited (AId _ = AMinus _ _) where
+  uninhabited Refl impossible
+
+Uninhabited (AId _ = AMult _ _) where
+  uninhabited Refl impossible
+
+Uninhabited (APlus _ _ = AId _) where
+  uninhabited Refl impossible
+
+Uninhabited (AMinus _ _ = AId _) where
+  uninhabited Refl impossible
+
+Uninhabited (AMult _ _ = AId _) where
+  uninhabited Refl impossible
+
+aNumInjective : ANum n = ANum m -> n = m
+aNumInjective Refl = Refl
+
+aIdInjective : AId x = AId y -> x = y
+aIdInjective Refl = Refl
+
 data BExp : Type where
   BTrue : BExp
   BFalse : BExp
