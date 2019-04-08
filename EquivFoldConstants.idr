@@ -55,10 +55,8 @@ fold_constants_bexp (BNot b) =
     e => BNot e
 fold_constants_bexp (BAnd b1 b2) =
   case (fold_constants_bexp b1, fold_constants_bexp b2) of
-    (BTrue, BTrue) => BTrue
-    (BFalse, BTrue) => BFalse
-    (BTrue, BFalse) => BFalse
-    (BFalse, BFalse) => BFalse
+    (BTrue, e2) => e2
+    (BFalse, _) => BFalse
     (e1, e2) => BAnd e1 e2
 
 fold_bexp_example_1 : fold_constants_bexp (BAnd BTrue (BNot (BAnd BFalse BTrue)))
@@ -117,162 +115,162 @@ fold_constants_aexp_sound (ANum _) _ = Refl
 fold_constants_aexp_sound (AId _) _ = Refl
 fold_constants_aexp_sound (APlus a1 a2) st
   with (fold_constants_aexp a1) proof a1prf
-    fold_constants_aexp_sound (APlus a1 a2) st | ANum k
+    fold_constants_aexp_sound (APlus a1 a2) st | ANum _
       with (fold_constants_aexp a2) proof a2prf
-        fold_constants_aexp_sound (APlus a1 a2) st | ANum k | ANum j =
+        fold_constants_aexp_sound (APlus a1 a2) st | ANum _ | ANum _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (APlus a1 a2) st | ANum k | AId x =
+        fold_constants_aexp_sound (APlus a1 a2) st | ANum _ | AId _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (APlus a1 a2) st | ANum k | APlus a3 a4 =
+        fold_constants_aexp_sound (APlus a1 a2) st | ANum _ | APlus _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (APlus a1 a2) st | ANum k | AMinus a3 a4 =
+        fold_constants_aexp_sound (APlus a1 a2) st | ANum _ | AMinus _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (APlus a1 a2) st | ANum k | AMult a3 a4 =
+        fold_constants_aexp_sound (APlus a1 a2) st | ANum _ | AMult _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-    fold_constants_aexp_sound (APlus a1 a2) st | AId a3 =
+    fold_constants_aexp_sound (APlus a1 a2) st | AId _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_aexp_sound (APlus a1 a2) st | APlus a3 a4 =
+    fold_constants_aexp_sound (APlus a1 a2) st | APlus _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_aexp_sound (APlus a1 a2) st | AMinus a3 a4 =
+    fold_constants_aexp_sound (APlus a1 a2) st | AMinus _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_aexp_sound (APlus a1 a2) st | AMult a3 a4 =
+    fold_constants_aexp_sound (APlus a1 a2) st | AMult _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
 fold_constants_aexp_sound (AMinus a1 a2) st
   with (fold_constants_aexp a1) proof a1prf
-    fold_constants_aexp_sound (AMinus a1 a2) st | ANum k
+    fold_constants_aexp_sound (AMinus a1 a2) st | ANum _
       with (fold_constants_aexp a2) proof a2prf
-        fold_constants_aexp_sound (AMinus a1 a2) st | ANum k | ANum j =
+        fold_constants_aexp_sound (AMinus a1 a2) st | ANum _ | ANum _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (AMinus a1 a2) st | ANum k | AId x =
+        fold_constants_aexp_sound (AMinus a1 a2) st | ANum _ | AId _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (AMinus a1 a2) st | ANum k | APlus a3 a4 =
+        fold_constants_aexp_sound (AMinus a1 a2) st | ANum _ | APlus _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (AMinus a1 a2) st | ANum k | AMinus a3 a4 =
+        fold_constants_aexp_sound (AMinus a1 a2) st | ANum _ | AMinus _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (AMinus a1 a2) st | ANum k | AMult a3 a4 =
+        fold_constants_aexp_sound (AMinus a1 a2) st | ANum _ | AMult _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-    fold_constants_aexp_sound (AMinus a1 a2) st | AId x =
+    fold_constants_aexp_sound (AMinus a1 a2) st | AId _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_aexp_sound (AMinus a1 a2) st | APlus a3 a4 =
+    fold_constants_aexp_sound (AMinus a1 a2) st | APlus _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_aexp_sound (AMinus a1 a2) st | AMinus a3 a4 =
+    fold_constants_aexp_sound (AMinus a1 a2) st | AMinus _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_aexp_sound (AMinus a1 a2) st | AMult a3 a4 =
+    fold_constants_aexp_sound (AMinus a1 a2) st | AMult _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
 fold_constants_aexp_sound (AMult a1 a2) st
   with (fold_constants_aexp a1) proof a1prf
-    fold_constants_aexp_sound (AMult a1 a2) st | ANum k
+    fold_constants_aexp_sound (AMult a1 a2) st | ANum _
       with (fold_constants_aexp a2) proof a2prf
-        fold_constants_aexp_sound (AMult a1 a2) st | ANum k | ANum j =
+        fold_constants_aexp_sound (AMult a1 a2) st | ANum _ | ANum _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (AMult a1 a2) st | ANum k | AId x =
+        fold_constants_aexp_sound (AMult a1 a2) st | ANum _ | AId _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (AMult a1 a2) st | ANum k | APlus a3 a4 =
+        fold_constants_aexp_sound (AMult a1 a2) st | ANum _ | APlus _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (AMult a1 a2) st | ANum k | AMinus a3 a4 =
+        fold_constants_aexp_sound (AMult a1 a2) st | ANum _ | AMinus _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_aexp_sound (AMult a1 a2) st | ANum k | AMult a3 a4 =
+        fold_constants_aexp_sound (AMult a1 a2) st | ANum _ | AMult _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-    fold_constants_aexp_sound (AMult a1 a2) st | AId x =
+    fold_constants_aexp_sound (AMult a1 a2) st | AId _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_aexp_sound (AMult a1 a2) st | APlus a3 a4 =
+    fold_constants_aexp_sound (AMult a1 a2) st | APlus _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_aexp_sound (AMult a1 a2) st | AMinus a3 a4 =
+    fold_constants_aexp_sound (AMult a1 a2) st | AMinus _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_aexp_sound (AMult a1 a2) st | AMult a3 a4 =
+    fold_constants_aexp_sound (AMult a1 a2) st | AMult _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
@@ -301,46 +299,46 @@ fold_constants_bexp_sound (BEq a1 a2) st
               in rewrite sym a2prf
               in rewrite sym eprf
               in Refl
-        fold_constants_bexp_sound (BEq a1 a2) st | ANum k | AId x =
+        fold_constants_bexp_sound (BEq a1 a2) st | ANum _ | AId _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_bexp_sound (BEq a1 a2) st | ANum k | APlus a3 a4 =
+        fold_constants_bexp_sound (BEq a1 a2) st | ANum _ | APlus _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_bexp_sound (BEq a1 a2) st | ANum k | AMinus a3 a4 =
+        fold_constants_bexp_sound (BEq a1 a2) st | ANum _ | AMinus _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_bexp_sound (BEq a1 a2) st | ANum k | AMult a3 a4 =
+        fold_constants_bexp_sound (BEq a1 a2) st | ANum _ | AMult _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-    fold_constants_bexp_sound (BEq a1 a2) st | AId x =
+    fold_constants_bexp_sound (BEq a1 a2) st | AId _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_bexp_sound (BEq a1 a2) st | APlus x y =
+    fold_constants_bexp_sound (BEq a1 a2) st | APlus _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_bexp_sound (BEq a1 a2) st | AMinus x y =
+    fold_constants_bexp_sound (BEq a1 a2) st | AMinus _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_bexp_sound (BEq a1 a2) st | AMult x y =
+    fold_constants_bexp_sound (BEq a1 a2) st | AMult _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
@@ -365,46 +363,46 @@ fold_constants_bexp_sound (BLe a1 a2) st
               in rewrite sym a2prf
               in rewrite lte_prf
               in Refl
-        fold_constants_bexp_sound (BLe a1 a2) st | ANum k | AId x =
+        fold_constants_bexp_sound (BLe a1 a2) st | ANum _ | AId _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_bexp_sound (BLe a1 a2) st | ANum k | APlus a3 a4 =
+        fold_constants_bexp_sound (BLe a1 a2) st | ANum _ | APlus _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_bexp_sound (BLe a1 a2) st | ANum k | AMinus a3 a4 =
+        fold_constants_bexp_sound (BLe a1 a2) st | ANum _ | AMinus _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-        fold_constants_bexp_sound (BLe a1 a2) st | ANum k | AMult a3 a4 =
+        fold_constants_bexp_sound (BLe a1 a2) st | ANum _ | AMult _ _ =
           rewrite fold_constants_aexp_sound a1 st
           in rewrite sym a1prf
           in rewrite fold_constants_aexp_sound a2 st
           in rewrite sym a2prf
           in Refl
-    fold_constants_bexp_sound (BLe a1 a2) st | AId x =
+    fold_constants_bexp_sound (BLe a1 a2) st | AId _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_bexp_sound (BLe a1 a2) st | APlus x y =
+    fold_constants_bexp_sound (BLe a1 a2) st | APlus _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_bexp_sound (BLe a1 a2) st | AMinus x y =
+    fold_constants_bexp_sound (BLe a1 a2) st | AMinus _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
-    fold_constants_bexp_sound (BLe a1 a2) st | AMult x y =
+    fold_constants_bexp_sound (BLe a1 a2) st | AMult _ _ =
       rewrite fold_constants_aexp_sound a1 st
       in rewrite sym a1prf
       in rewrite fold_constants_aexp_sound a2 st
@@ -419,104 +417,48 @@ fold_constants_bexp_sound (BNot b) st
       rewrite fold_constants_bexp_sound b st
       in rewrite sym bprf
       in Refl
-    fold_constants_bexp_sound (BNot b) st | BEq a1 a2 =
+    fold_constants_bexp_sound (BNot b) st | BEq _ _ =
       rewrite fold_constants_bexp_sound b st
       in rewrite sym bprf
       in Refl
-    fold_constants_bexp_sound (BNot b) st | BLe a1 a2 =
+    fold_constants_bexp_sound (BNot b) st | BLe _ _ =
       rewrite fold_constants_bexp_sound b st
       in rewrite sym bprf
       in Refl
-    fold_constants_bexp_sound (BNot b) st | BNot b1 =
+    fold_constants_bexp_sound (BNot b) st | BNot _ =
       rewrite fold_constants_bexp_sound b st
       in rewrite sym bprf
       in Refl
-    fold_constants_bexp_sound (BNot b) st | BAnd b1 b2 =
+    fold_constants_bexp_sound (BNot b) st | BAnd _ _ =
       rewrite fold_constants_bexp_sound b st
       in rewrite sym bprf
       in Refl
 fold_constants_bexp_sound (BAnd b1 b2) st
   with (fold_constants_bexp b1) proof b1prf
-    fold_constants_bexp_sound (BAnd b1 b2) st | BTrue
-      with (fold_constants_bexp b2) proof b2prf
-        fold_constants_bexp_sound (BAnd b1 b2) st | BTrue | BTrue =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in rewrite fold_constants_bexp_sound b2 st
-          in rewrite sym b2prf
-          in Refl
-        fold_constants_bexp_sound (BAnd b1 b2) st | BTrue | BFalse =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in rewrite fold_constants_bexp_sound b2 st
-          in rewrite sym b2prf
-          in Refl
-        fold_constants_bexp_sound (BAnd b1 b2) st | BTrue | BEq a1 a2 =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in rewrite fold_constants_bexp_sound b2 st
-          in rewrite sym b2prf
-          in Refl
-        fold_constants_bexp_sound (BAnd b1 b2) st | BTrue | BLe a1 a2 =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in rewrite fold_constants_bexp_sound b2 st
-          in rewrite sym b2prf
-          in Refl
-        fold_constants_bexp_sound (BAnd b1 b2) st | BTrue | BNot b =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in rewrite fold_constants_bexp_sound b2 st
-          in rewrite sym b2prf
-          in Refl
-        fold_constants_bexp_sound (BAnd b1 b2) st | BTrue | BAnd b3 b4 =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in rewrite fold_constants_bexp_sound b2 st
-          in rewrite sym b2prf
-          in Refl
-    fold_constants_bexp_sound (BAnd b1 b2) st | BFalse
-      with (fold_constants_bexp b2) proof b2prf
-        fold_constants_bexp_sound (BAnd b1 b2) st | BFalse | BTrue =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in Refl
-        fold_constants_bexp_sound (BAnd b1 b2) st | BFalse | BFalse =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in Refl
-        fold_constants_bexp_sound (BAnd b1 b2) st | BFalse | BEq a1 a2 =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in Refl
-        fold_constants_bexp_sound (BAnd b1 b2) st | BFalse | BLe a1 a2 =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in Refl
-        fold_constants_bexp_sound (BAnd b1 b2) st | BFalse | BNot b =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in Refl
-        fold_constants_bexp_sound (BAnd b1 b2) st | BFalse | BAnd b3 b4 =
-          rewrite fold_constants_bexp_sound b1 st
-          in rewrite sym b1prf
-          in Refl
-    fold_constants_bexp_sound (BAnd b1 b2) st | BEq a1 a2 =
+    fold_constants_bexp_sound (BAnd b1 b2) st | BTrue =
+      rewrite fold_constants_bexp_sound b1 st
+      in rewrite sym b1prf
+      in fold_constants_bexp_sound b2 st
+    fold_constants_bexp_sound (BAnd b1 b2) st | BFalse =
+      rewrite fold_constants_bexp_sound b1 st
+      in rewrite sym b1prf
+      in Refl
+    fold_constants_bexp_sound (BAnd b1 b2) st | BEq _ _ =
       rewrite fold_constants_bexp_sound b1 st
       in rewrite sym b1prf
       in rewrite fold_constants_bexp_sound b2 st
       in Refl
-    fold_constants_bexp_sound (BAnd b1 b2) st | BLe a1 a2 =
+    fold_constants_bexp_sound (BAnd b1 b2) st | BLe _ _ =
       rewrite fold_constants_bexp_sound b1 st
       in rewrite sym b1prf
       in rewrite fold_constants_bexp_sound b2 st
       in Refl
-    fold_constants_bexp_sound (BAnd b1 b2) st | BNot b =
+    fold_constants_bexp_sound (BAnd b1 b2) st | BNot _ =
       rewrite fold_constants_bexp_sound b1 st
       in rewrite sym b1prf
       in rewrite fold_constants_bexp_sound b2 st
       in Refl
-    fold_constants_bexp_sound (BAnd b1 b2) st | BAnd b3 b4 =
+    fold_constants_bexp_sound (BAnd b1 b2) st | BAnd _ _ =
       rewrite fold_constants_bexp_sound b1 st
       in rewrite sym b1prf
       in rewrite fold_constants_bexp_sound b2 st
