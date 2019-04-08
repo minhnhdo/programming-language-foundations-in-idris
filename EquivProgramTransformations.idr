@@ -665,49 +665,47 @@ where forward :
                            {P=\x => beval st b = beval st x}
           in E_IfFalse (trans cond_prf prf) $
                snd (fold_constants_com_sound cf st st') rel
-fold_constants_com_sound (CWhile b c) = \st, st' =>
-  (forward st st', backward st st')
-where forward :
-        (st, st' : State) ->
-        ((CWhile b c) / st \\ st') ->
-        ((EquivProgramTransformations.fold_constants_com (CWhile b c))
-         / st \\ st')
-      forward st st (E_WhileEnd prf) with (fold_constants_bexp b) proof bprf
-        forward st st (E_WhileEnd prf) | BTrue =
-          let pf = fold_constants_bexp_sound b st
-          in absurd $ replace (sym bprf) (trans (sym prf) pf)
-                        {P=\x => False = beval st x}
-        forward st st (E_WhileEnd prf) | BFalse = E_Skip
-        forward st st (E_WhileEnd prf) | BEq x y =
-          let pf = fold_constants_bexp_sound b st
-          in E_WhileEnd $ replace (sym bprf) (trans (sym pf) prf)
-                            {P=\x => beval st x = False}
-        forward st st (E_WhileEnd prf) | BLe x y =
-          let pf = fold_constants_bexp_sound b st
-          in E_WhileEnd $ replace (sym bprf) (trans (sym pf) prf)
-                            {P=\x => beval st x = False}
-        forward st st (E_WhileEnd prf) | BNot x =
-          let pf = fold_constants_bexp_sound b st
-          in E_WhileEnd $ replace (sym bprf) (trans (sym pf) prf)
-                            {P=\x => beval st x = False}
-        forward st st (E_WhileEnd prf) | BAnd x y =
-          let pf = fold_constants_bexp_sound b st
-          in E_WhileEnd $ replace (sym bprf) (trans (sym pf) prf)
-                            {P=\x => beval st x = False}
-      forward st st' (E_WhileLoop {st1} prf rel next)
-        with (fold_constants_bexp b) proof bprf
-          forward st st' (E_WhileLoop prf rel next) | BTrue = ?forward_rhs_2_rhs_1
-          forward st st' (E_WhileLoop prf rel next) | BFalse =
-            let pf = fold_constants_bexp_sound b st
-            in absurd $ replace (sym bprf) (trans (sym pf) prf)
-                          {P=\x => beval st x = True}
-          forward st st' (E_WhileLoop {st1} prf rel next) | BEq x y =?forward_rhs_2_rhs_3
-          forward st st' (E_WhileLoop {st1} prf rel next) | BLe x y = ?forward_rhs_2_rhs_4
-          forward st st' (E_WhileLoop {st1} prf rel next) | BNot x = ?forward_rhs_2_rhs_5
-          forward st st' (E_WhileLoop {st1} prf rel next) | BAnd x y = ?forward_rhs_2_rhs_6
-      backward :
-        (st, st' : State) ->
-        ((EquivProgramTransformations.fold_constants_com (CWhile b c))
-         / st \\ st') ->
-        ((CWhile b c) / st \\ st')
-      backward st st' rel = ?backward_rhs
+fold_constants_com_sound (CWhile b c) = fold_constants_cwhile_sound
+where fold_constants_cwhile_sound :
+        CEquiv
+          (CWhile b c)
+          (EquivProgramTransformations.fold_constants_com (CWhile b c))
+      fold_constants_cwhile_sound st st' with (fold_constants_bexp b) proof bprf
+        fold_constants_cwhile_sound st st' | BTrue =
+          let cond_prf = \st1 =>
+                replace (sym bprf) (fold_constants_bexp_sound b st1)
+                  {P=\x => beval st1 b = beval st1 x}
+          in while_true cond_prf st st'
+        fold_constants_cwhile_sound st st' | BFalse =
+          let cond_prf = \st1 =>
+                replace (sym bprf) (fold_constants_bexp_sound b st1)
+                  {P=\x => beval st1 b = beval st1 x}
+          in while_false cond_prf st st'
+        fold_constants_cwhile_sound st st' | BEq x y =
+          let cond_equiv = the (BEquiv b (BEq x y)) $ \st1 =>
+                             replace {P=\x => beval st1 b = beval st1 x}
+                                     (sym bprf) (fold_constants_bexp_sound b st1)
+              com_equiv = fold_constants_com_sound c
+              while_equiv = cWhile_congruence cond_equiv com_equiv
+          in while_equiv st st'
+        fold_constants_cwhile_sound st st' | BLe x y =
+          let cond_equiv = the (BEquiv b (BLe x y)) $ \st1 =>
+                             replace {P=\x => beval st1 b = beval st1 x}
+                                     (sym bprf) (fold_constants_bexp_sound b st1)
+              com_equiv = fold_constants_com_sound c
+              while_equiv = cWhile_congruence cond_equiv com_equiv
+          in while_equiv st st'
+        fold_constants_cwhile_sound st st' | BNot x =
+          let cond_equiv = the (BEquiv b (BNot x)) $ \st1 =>
+                             replace {P=\x => beval st1 b = beval st1 x}
+                                     (sym bprf) (fold_constants_bexp_sound b st1)
+              com_equiv = fold_constants_com_sound c
+              while_equiv = cWhile_congruence cond_equiv com_equiv
+          in while_equiv st st'
+        fold_constants_cwhile_sound st st' | BAnd x y =
+          let cond_equiv = the (BEquiv b (BAnd x y)) $ \st1 =>
+                             replace {P=\x => beval st1 b = beval st1 x}
+                                     (sym bprf) (fold_constants_bexp_sound b st1)
+              com_equiv = fold_constants_com_sound c
+              while_equiv = cWhile_congruence cond_equiv com_equiv
+          in while_equiv st st'
