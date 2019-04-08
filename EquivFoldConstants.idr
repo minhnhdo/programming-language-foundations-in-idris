@@ -1,4 +1,4 @@
-module EquivProgramTransformations
+module EquivFoldConstants
 
 import Equiv
 import Logic
@@ -8,15 +8,6 @@ import Maps
 %access public export
 
 %default total
-
-ATransSound : (atrans : AExp -> AExp) -> Type
-ATransSound atrans = (a : AExp) -> AEquiv a (atrans a)
-
-BTransSound : (btrans : BExp -> BExp) -> Type
-BTransSound btrans = (b : BExp) -> BEquiv b (btrans b)
-
-CTransSound : (ctrans : Com -> Com) -> Type
-CTransSound ctrans = (c : Com) -> CEquiv c (ctrans c)
 
 fold_constants_aexp : (a : AExp) -> AExp
 fold_constants_aexp (ANum k) = ANum k
@@ -121,8 +112,7 @@ fold_com_example_1 :
           X ::= APlus (AId X) (ANum 1))
 fold_com_example_1 = Refl
 
-fold_constants_aexp_sound :
-  ATransSound EquivProgramTransformations.fold_constants_aexp
+fold_constants_aexp_sound : ATransSound EquivFoldConstants.fold_constants_aexp
 fold_constants_aexp_sound (ANum _) _ = Refl
 fold_constants_aexp_sound (AId _) _ = Refl
 fold_constants_aexp_sound (APlus a1 a2) st
@@ -288,8 +278,7 @@ fold_constants_aexp_sound (AMult a1 a2) st
       in rewrite fold_constants_aexp_sound a2 st
       in Refl
 
-fold_constants_bexp_sound :
-  BTransSound EquivProgramTransformations.fold_constants_bexp
+fold_constants_bexp_sound : BTransSound EquivFoldConstants.fold_constants_bexp
 fold_constants_bexp_sound BTrue _ = Refl
 fold_constants_bexp_sound BFalse _ = Refl
 fold_constants_bexp_sound (BEq a1 a2) st
@@ -533,8 +522,7 @@ fold_constants_bexp_sound (BAnd b1 b2) st
       in rewrite fold_constants_bexp_sound b2 st
       in Refl
 
-fold_constants_com_sound :
-  CTransSound EquivProgramTransformations.fold_constants_com
+fold_constants_com_sound : CTransSound EquivFoldConstants.fold_constants_com
 fold_constants_com_sound CSkip = refl_cequiv
 fold_constants_com_sound (CAss x e) =
   cAss_congruence (fold_constants_aexp_sound e)
@@ -542,9 +530,8 @@ fold_constants_com_sound (CSeq c1 c2) =
   cSeq_congruence (fold_constants_com_sound c1) (fold_constants_com_sound c2)
 fold_constants_com_sound (CIf b ct cf) = fold_constants_cif_sound
 where fold_constants_cif_sound :
-        CEquiv
-          (CIf b ct cf)
-          (EquivProgramTransformations.fold_constants_com (CIf b ct cf))
+        CEquiv (CIf b ct cf)
+               (EquivFoldConstants.fold_constants_com (CIf b ct cf))
       fold_constants_cif_sound st st' with (fold_constants_bexp b) proof bprf
         fold_constants_cif_sound st st' | BTrue =
           let b_equiv = the (BEquiv b BTrue) $ \st1 =>
@@ -590,9 +577,7 @@ where fold_constants_cif_sound :
           in cif_equiv st st'
 fold_constants_com_sound (CWhile b c) = fold_constants_cwhile_sound
 where fold_constants_cwhile_sound :
-        CEquiv
-          (CWhile b c)
-          (EquivProgramTransformations.fold_constants_com (CWhile b c))
+        CEquiv (CWhile b c) (EquivFoldConstants.fold_constants_com (CWhile b c))
       fold_constants_cwhile_sound st st' with (fold_constants_bexp b) proof bprf
         fold_constants_cwhile_sound st st' | BTrue =
           let b_equiv = \st1 =>

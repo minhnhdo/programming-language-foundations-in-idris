@@ -354,3 +354,12 @@ where forward : ((Y ::= ANum 0) / st \\ st') ->
                                   in E_Ass Refl
       statements_equiv : CEquiv (Y ::= ANum 0) (Y ::= AMinus (AId X) (AId X))
       statements_equiv _ _ = (forward, backward)
+
+ATransSound : (atrans : AExp -> AExp) -> Type
+ATransSound atrans = (a : AExp) -> AEquiv a (atrans a)
+
+BTransSound : (btrans : BExp -> BExp) -> Type
+BTransSound btrans = (b : BExp) -> BEquiv b (btrans b)
+
+CTransSound : (ctrans : Com -> Com) -> Type
+CTransSound ctrans = (c : Com) -> CEquiv c (ctrans c)
