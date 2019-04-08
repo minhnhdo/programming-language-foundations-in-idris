@@ -131,6 +131,26 @@ where forward : ((WHILE b c) / st \\ st') ->
       backward (E_IfFalse prf rel) = case rel of
         E_Skip => E_WhileEnd prf
 
+if_false : BEquiv b BFalse -> CEquiv (CIf b ct cf) cf
+if_false {b} bfalse st st' = (forward, backward)
+where forward : ((CIf b ct cf) / st \\ st') ->
+                (cf / st \\ st')
+      forward (E_IfTrue prf _) = absurd $ trans (sym prf) (bfalse st)
+      forward (E_IfFalse _ rel) = rel
+      backward : (cf / st \\ st') ->
+                 ((CIf b ct cf) / st \\ st')
+      backward rel = E_IfFalse (bfalse st) rel
+
+if_true : BEquiv b BTrue -> CEquiv (CIf b ct cf) ct
+if_true {b} btrue st st' = (forward, backward)
+where forward : ((CIf b ct cf) / st \\ st') ->
+                (ct / st \\ st')
+      forward (E_IfTrue _ rel) = rel
+      forward (E_IfFalse prf _) = absurd $ trans (sym prf) (btrue st)
+      backward : (ct / st \\ st') ->
+                 ((CIf b ct cf) / st \\ st')
+      backward rel = E_IfTrue (btrue st) rel
+
 seq_assoc : CEquiv (do (do c1; c2); c3) (do c1; (do c2; c3))
 seq_assoc st st' = (forward, backward)
 where forward : ((do (do c1; c2); c3) / st \\ st') ->
