@@ -523,97 +523,95 @@ fold_constants_bexp_sound (BAnd b1 b2) st
       in Refl
 
 fold_constants_com_sound : CTransSound EquivFoldConstants.fold_constants_com
-fold_constants_com_sound CSkip = refl_cequiv
-fold_constants_com_sound (CAss x e) =
-  cAss_congruence (fold_constants_aexp_sound e)
-fold_constants_com_sound (CSeq c1 c2) =
-  cSeq_congruence (fold_constants_com_sound c1) (fold_constants_com_sound c2)
-fold_constants_com_sound (CIf b ct cf) = fold_constants_cif_sound
-where fold_constants_cif_sound :
-        CEquiv (CIf b ct cf)
-               (EquivFoldConstants.fold_constants_com (CIf b ct cf))
-      fold_constants_cif_sound st st' with (fold_constants_bexp b) proof bprf
-        fold_constants_cif_sound st st' | BTrue =
-          let b_equiv = the (BEquiv b BTrue) $ \st1 =>
-                          replace {P=\x => beval st1 b = beval st1 x}
-                                  (sym bprf) (fold_constants_bexp_sound b st1)
-          in trans_cequiv (if_true b_equiv) (fold_constants_com_sound ct) st st'
-        fold_constants_cif_sound st st' | BFalse =
-          let b_equiv = the (BEquiv b BFalse) $ \st1 =>
-                          replace {P=\x => beval st1 b = beval st1 x}
-                                  (sym bprf) (fold_constants_bexp_sound b st1)
-          in trans_cequiv (if_false b_equiv) (fold_constants_com_sound cf) st st'
-        fold_constants_cif_sound st st' | (BEq x y) =
-          let b_equiv = the (BEquiv b (BEq x y)) $ \st1 =>
-                          replace {P=\x => beval st1 b = beval st1 x}
-                            (sym bprf) (fold_constants_bexp_sound b st1)
-              ct_equiv = fold_constants_com_sound ct
-              cf_equiv = fold_constants_com_sound cf
-              cif_equiv = cIf_congruence b_equiv ct_equiv cf_equiv
-          in cif_equiv st st'
-        fold_constants_cif_sound st st' | BLe x y =
-          let b_equiv = the (BEquiv b (BLe x y)) $ \st1 =>
-                          replace {P=\x => beval st1 b = beval st1 x}
-                            (sym bprf) (fold_constants_bexp_sound b st1)
-              ct_equiv = fold_constants_com_sound ct
-              cf_equiv = fold_constants_com_sound cf
-              cif_equiv = cIf_congruence b_equiv ct_equiv cf_equiv
-          in cif_equiv st st'
-        fold_constants_cif_sound st st' | BNot x =
-          let b_equiv = the (BEquiv b (BNot x)) $ \st1 =>
-                          replace {P=\x => beval st1 b = beval st1 x}
-                            (sym bprf) (fold_constants_bexp_sound b st1)
-              ct_equiv = fold_constants_com_sound ct
-              cf_equiv = fold_constants_com_sound cf
-              cif_equiv = cIf_congruence b_equiv ct_equiv cf_equiv
-          in cif_equiv st st'
-        fold_constants_cif_sound st st' | BAnd x y =
-          let b_equiv = the (BEquiv b (BAnd x y)) $ \st1 =>
-                          replace {P=\x => beval st1 b = beval st1 x}
-                            (sym bprf) (fold_constants_bexp_sound b st1)
-              ct_equiv = fold_constants_com_sound ct
-              cf_equiv = fold_constants_com_sound cf
-              cif_equiv = cIf_congruence b_equiv ct_equiv cf_equiv
-          in cif_equiv st st'
-fold_constants_com_sound (CWhile b c) = fold_constants_cwhile_sound
-where fold_constants_cwhile_sound :
-        CEquiv (CWhile b c) (EquivFoldConstants.fold_constants_com (CWhile b c))
-      fold_constants_cwhile_sound st st' with (fold_constants_bexp b) proof bprf
-        fold_constants_cwhile_sound st st' | BTrue =
-          let b_equiv = \st1 =>
-                replace (sym bprf) (fold_constants_bexp_sound b st1)
-                  {P=\x => beval st1 b = beval st1 x}
-          in while_true b_equiv st st'
-        fold_constants_cwhile_sound st st' | BFalse =
-          let b_equiv = \st1 =>
-                replace (sym bprf) (fold_constants_bexp_sound b st1)
-                  {P=\x => beval st1 b = beval st1 x}
-          in while_false b_equiv st st'
-        fold_constants_cwhile_sound st st' | BEq x y =
-          let b_equiv = the (BEquiv b (BEq x y)) $ \st1 =>
-                             replace {P=\x => beval st1 b = beval st1 x}
-                                     (sym bprf) (fold_constants_bexp_sound b st1)
-              c_equiv = fold_constants_com_sound c
-              while_equiv = cWhile_congruence b_equiv c_equiv
-          in while_equiv st st'
-        fold_constants_cwhile_sound st st' | BLe x y =
-          let b_equiv = the (BEquiv b (BLe x y)) $ \st1 =>
-                             replace {P=\x => beval st1 b = beval st1 x}
-                                     (sym bprf) (fold_constants_bexp_sound b st1)
-              c_equiv = fold_constants_com_sound c
-              while_equiv = cWhile_congruence b_equiv c_equiv
-          in while_equiv st st'
-        fold_constants_cwhile_sound st st' | BNot x =
-          let b_equiv = the (BEquiv b (BNot x)) $ \st1 =>
-                             replace {P=\x => beval st1 b = beval st1 x}
-                                     (sym bprf) (fold_constants_bexp_sound b st1)
-              c_equiv = fold_constants_com_sound c
-              while_equiv = cWhile_congruence b_equiv c_equiv
-          in while_equiv st st'
-        fold_constants_cwhile_sound st st' | BAnd x y =
-          let b_equiv = the (BEquiv b (BAnd x y)) $ \st1 =>
-                             replace {P=\x => beval st1 b = beval st1 x}
-                                     (sym bprf) (fold_constants_bexp_sound b st1)
-              c_equiv = fold_constants_com_sound c
-              while_equiv = cWhile_congruence b_equiv c_equiv
-          in while_equiv st st'
+fold_constants_com_sound CSkip st st' = refl_cequiv {c=CSkip} st st'
+fold_constants_com_sound (CAss x e) st st' =
+  let c_equiv = cAss_congruence (fold_constants_aexp_sound e)
+  in c_equiv st st'
+fold_constants_com_sound (CSeq c1 c2) st st' =
+  let c_equiv = cSeq_congruence (fold_constants_com_sound c1)
+                                (fold_constants_com_sound c2)
+  in c_equiv st st'
+fold_constants_com_sound (CIf b ct cf) st st'
+  with (fold_constants_bexp b) proof bprf
+    fold_constants_com_sound (CIf b ct cf) st st' | BTrue =
+      let b_equiv = \st1 =>
+                      replace {P=\x => beval st1 b = beval st1 x}
+                              (sym bprf) (fold_constants_bexp_sound b st1)
+      in trans_cequiv (if_true b_equiv) (fold_constants_com_sound ct) st st'
+    fold_constants_com_sound (CIf b ct cf) st st' | BFalse =
+      let b_equiv = \st1 =>
+                      replace {P=\x => beval st1 b = beval st1 x}
+                              (sym bprf) (fold_constants_bexp_sound b st1)
+      in trans_cequiv (if_false b_equiv) (fold_constants_com_sound cf) st st'
+    fold_constants_com_sound (CIf b ct cf) st st' | BEq _ _ =
+      let b_equiv = \st1 =>
+                      replace {P=\x => beval st1 b = beval st1 x}
+                        (sym bprf) (fold_constants_bexp_sound b st1)
+          ct_equiv = fold_constants_com_sound ct
+          cf_equiv = fold_constants_com_sound cf
+          cif_equiv = cIf_congruence b_equiv ct_equiv cf_equiv
+      in cif_equiv st st'
+    fold_constants_com_sound (CIf b ct cf) st st' | BLe _ _ =
+      let b_equiv = \st1 =>
+                      replace {P=\x => beval st1 b = beval st1 x}
+                        (sym bprf) (fold_constants_bexp_sound b st1)
+          ct_equiv = fold_constants_com_sound ct
+          cf_equiv = fold_constants_com_sound cf
+          cif_equiv = cIf_congruence b_equiv ct_equiv cf_equiv
+      in cif_equiv st st'
+    fold_constants_com_sound (CIf b ct cf) st st' | BNot _ =
+      let b_equiv = \st1 =>
+                      replace {P=\x => beval st1 b = beval st1 x}
+                        (sym bprf) (fold_constants_bexp_sound b st1)
+          ct_equiv = fold_constants_com_sound ct
+          cf_equiv = fold_constants_com_sound cf
+          cif_equiv = cIf_congruence b_equiv ct_equiv cf_equiv
+      in cif_equiv st st'
+    fold_constants_com_sound (CIf b ct cf) st st' | BAnd _ _ =
+      let b_equiv = \st1 =>
+                      replace {P=\x => beval st1 b = beval st1 x}
+                        (sym bprf) (fold_constants_bexp_sound b st1)
+          ct_equiv = fold_constants_com_sound ct
+          cf_equiv = fold_constants_com_sound cf
+          cif_equiv = cIf_congruence b_equiv ct_equiv cf_equiv
+      in cif_equiv st st'
+fold_constants_com_sound (CWhile b c) st st'
+  with (fold_constants_bexp b) proof bprf
+    fold_constants_cwhile_sound (CWhile b c) st st' | BTrue =
+      let b_equiv = \st1 =>
+            replace (sym bprf) (fold_constants_bexp_sound b st1)
+              {P=\x => beval st1 b = beval st1 x}
+      in while_true b_equiv st st'
+    fold_constants_cwhile_sound (CWhile b c) st st' | BFalse =
+      let b_equiv = \st1 =>
+            replace (sym bprf) (fold_constants_bexp_sound b st1)
+              {P=\x => beval st1 b = beval st1 x}
+      in while_false b_equiv st st'
+    fold_constants_cwhile_sound (CWhile b c) st st' | BEq _ _ =
+      let b_equiv = \st1 =>
+                         replace {P=\x => beval st1 b = beval st1 x}
+                                 (sym bprf) (fold_constants_bexp_sound b st1)
+          c_equiv = fold_constants_com_sound c
+          while_equiv = cWhile_congruence b_equiv c_equiv
+      in while_equiv st st'
+    fold_constants_cwhile_sound (CWhile b c) st st' | BLe _ _ =
+      let b_equiv = \st1 =>
+                         replace {P=\x => beval st1 b = beval st1 x}
+                                 (sym bprf) (fold_constants_bexp_sound b st1)
+          c_equiv = fold_constants_com_sound c
+          while_equiv = cWhile_congruence b_equiv c_equiv
+      in while_equiv st st'
+    fold_constants_cwhile_sound (CWhile b c) st st' | BNot _ =
+      let b_equiv = \st1 =>
+                         replace {P=\x => beval st1 b = beval st1 x}
+                                 (sym bprf) (fold_constants_bexp_sound b st1)
+          c_equiv = fold_constants_com_sound c
+          while_equiv = cWhile_congruence b_equiv c_equiv
+      in while_equiv st st'
+    fold_constants_cwhile_sound (CWhile b c) st st' | BAnd _ _ =
+      let b_equiv = \st1 =>
+                         replace {P=\x => beval st1 b = beval st1 x}
+                                 (sym bprf) (fold_constants_bexp_sound b st1)
+          c_equiv = fold_constants_com_sound c
+          while_equiv = cWhile_congruence b_equiv c_equiv
+      in while_equiv st st'

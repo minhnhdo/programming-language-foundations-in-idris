@@ -281,7 +281,7 @@ optimize_0plus_bexp_sound {b = BAnd b1 b2} st
       in Refl
 
 optimize_0plus_com_sound : CTransSound EquivOptimize0Plus.optimize_0plus_com
-optimize_0plus_com_sound {c = CSkip} _ _ = (id, id)
+optimize_0plus_com_sound {c = CSkip} st st' = refl_cequiv {c=CSkip} st st'
 optimize_0plus_com_sound {c = (CAss _ e)} st st' =
   let c_equiv = cAss_congruence (optimize_0plus_aexp_sound e)
   in c_equiv st st'
