@@ -13,13 +13,13 @@ data Id : Type where
 beq_id : (x1, x2 : Id) -> Bool
 beq_id (MkId x) (MkId y) = decAsBool $ decEq x y
 
-id_inj : MkId x = MkId y -> x = y
-id_inj Refl = Refl
+mkIdInjective : MkId x = MkId y -> x = y
+mkIdInjective Refl = Refl
 
 implementation DecEq Id where
   decEq (MkId x) (MkId y) with (decEq x y)
     decEq _ _ | Yes prf = Yes $ cong {f=MkId} prf
-    decEq _ _ | No contra = No $ \prf => contra $ id_inj prf
+    decEq _ _ | No contra = No $ \prf => contra $ mkIdInjective prf
 
 beq_id_refl : (x : Id) -> True = beq_id x x
 beq_id_refl (MkId x) with (decEq x x)
@@ -35,7 +35,7 @@ where forward : beq_id x y = True -> x = y
       backward : x = y -> beq_id x y = True
       backward {x = (MkId x)} {y = (MkId y)} prf with (decEq x y)
         backward Refl | Yes _ = Refl
-        backward prf | No contra = absurd . contra $ id_inj prf
+        backward prf | No contra = absurd . contra $ mkIdInjective prf
 
 beq_id_false_iff : (beq_id x y = False) ↔ Not (x = y)
 beq_id_false_iff = (forward, backward)

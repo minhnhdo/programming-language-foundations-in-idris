@@ -146,3 +146,32 @@ data CEval : Com -> State -> State -> Type where
                 CEval (CWhile b c) st st2
 
 syntax [c1] "/" [st1] "\\\\" [st2] = CEval c1 st1 st2
+
+ceval_deterministic : (c / st \\ st1) -> (c / st \\ st2) -> st1 = st2
+ceval_deterministic E_Skip E_Skip = Refl
+ceval_deterministic (E_Ass aev1) (E_Ass aev2) =
+  rewrite sym aev1
+  in rewrite sym aev2
+  in Refl
+ceval_deterministic {st2} (E_Seq cev11 cev12) (E_Seq {c2} cev21 cev22) =
+  let ih = ceval_deterministic cev11 cev21
+      cev22' = replace (sym ih) cev22 {P=\x=>CEval c2 x st2}
+  in ceval_deterministic cev12 cev22'
+ceval_deterministic (E_IfTrue _ cev1) (E_IfTrue _ cev2) =
+  ceval_deterministic cev1 cev2
+ceval_deterministic (E_IfTrue prf1 _) (E_IfFalse prf2 _) =
+  absurd $ replace prf1 prf2 {P=\x=>x=False}
+ceval_deterministic (E_IfFalse prf1 _) (E_IfTrue prf2 _) =
+  absurd $ replace prf2 prf1 {P=\x=>x=False}
+ceval_deterministic (E_IfFalse _ cev1) (E_IfFalse _ cev2) =
+  ceval_deterministic cev1 cev2
+ceval_deterministic (E_WhileEnd _) (E_WhileEnd _) = Refl
+ceval_deterministic (E_WhileEnd prf1) (E_WhileLoop prf2 _ _) =
+  absurd $ replace prf2 prf1 {P=\x=>x=False}
+ceval_deterministic (E_WhileLoop prf1 _ _) (E_WhileEnd prf2) =
+  absurd $ replace prf1 prf2 {P=\x=>x=False}
+ceval_deterministic {st2} (E_WhileLoop _ cev11 cev12)
+                          (E_WhileLoop {b} {c} _ cev21 cev22) =
+  let ih = ceval_deterministic cev11 cev21
+      cev22' = replace (sym ih) cev22 {P=\x=>CEval (CWhile b c) x st2}
+  in ceval_deterministic cev12 cev22'
