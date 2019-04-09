@@ -32,10 +32,26 @@ data AExp : Type where
   AMinus : AExp -> AExp -> AExp
   AMult : AExp -> AExp -> AExp
 
+namespace VariableNames
+  W : AExp
+  W = AId W
+
+  X : AExp
+  X = AId X
+
+  Y : AExp
+  Y = AId Y
+
+  Z : AExp
+  Z = AId Z
+
 Num AExp where
   (+) = APlus
   (*) = AMult
   fromInteger = ANum . fromIntegerNat
+
+(-) : AExp -> AExp -> AExp
+(-) = AMinus
 
 Uninhabited (ANum _ = AId _) where
   uninhabited Refl impossible
@@ -92,6 +108,18 @@ data BExp : Type where
   BLe : AExp -> AExp -> BExp
   BNot : BExp -> BExp
   BAnd : BExp -> BExp -> BExp
+
+(==) : AExp -> AExp -> BExp
+(==) = BEq
+
+(<=) : AExp -> AExp -> BExp
+(<=) = BLe
+
+not : BExp -> BExp
+not = BNot
+
+(&&) : BExp -> BExp -> BExp
+(&&) = BAnd
 
 aeval : State -> AExp -> Nat
 aeval _ (ANum n) = n

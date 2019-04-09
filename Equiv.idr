@@ -14,12 +14,12 @@ AEquiv a1 a2 = (st : State) -> aeval st a1 = aeval st a2
 BEquiv : (b1, b2 : BExp) -> Type
 BEquiv b1 b2 = (st : State) -> beval st b1 = beval st b2
 
-AEquiv_example : AEquiv (AMinus (AId X) (AId X)) (ANum 0)
+AEquiv_example : AEquiv (X - X) 0
 AEquiv_example st with (st X)
   AEquiv_example st | Z = Refl
   AEquiv_example st | S k = sym $ minusZeroN k
 
-BEquiv_example : BEquiv (BEq (AMinus (AId X) (AId X)) (ANum 0)) BTrue
+BEquiv_example : BEquiv (X - X == 0) BTrue
 BEquiv_example st with (st X)
   BEquiv_example st | Z = Refl
   BEquiv_example st | S k = rewrite sym $ minusZeroN k in Refl
@@ -72,7 +72,7 @@ where forward : ((IFB b THEN c1 ELSE c2 FI) / st \\ st') ->
       backward rel = E_IfFalse (bfalse st) rel
 
 swap_if_branches : CEquiv (IFB b THEN c1 ELSE c2 FI)
-                          (IFB BNot b THEN c2 ELSE c1 FI)
+                          (IFB not b THEN c2 ELSE c1 FI)
 swap_if_branches {b} st st' = (forward, backward)
 where forward : ((IFB b THEN c1 ELSE c2 FI) / st \\ st') ->
                 ((IFB BNot b THEN c2 ELSE c1 FI) / st \\ st')
@@ -187,17 +187,17 @@ where forward : (SKIP / st \\ st') -> ((x ::= e) / st \\ st')
 
 prog_a : Com
 prog_a =
-  WHILE (BNot (BLe (AId X) 0)) $
-    X ::= AId X + 1
+  WHILE (not (X <= 0)) $
+    X ::= X + 1
 
 prog_b : Com
 prog_b = do
-  IFB BEq (AId X) 0
-      THEN do X ::= AId X + 1
+  IFB X == 0
+      THEN do X ::= X + 1
               Y ::= 1
       ELSE Y ::= 0
   FI
-  X ::= AMinus (AId X) (AId Y)
+  X ::= X - Y
   Y ::= 0
 
 prog_c : Com
@@ -205,30 +205,30 @@ prog_c = SKIP
 
 prog_d : Com
 prog_d =
-  WHILE (BNot (BEq (AId X) 0)) $
-    X ::= (AId X * AId Y) + 1
+  WHILE (not (X == 0)) $
+    X ::= X * Y + 1
 
 prog_e : Com
 prog_e = Y ::= 0
 
 prog_f : Com
 prog_f = do
-  Y ::= AId X + 1
-  WHILE (BNot (BEq (AId X) (AId Y))) $
-    Y ::= AId X + 1
+  Y ::= X + 1
+  WHILE (not (X == Y)) $
+    Y ::= X + 1
 
 prog_g : Com
 prog_g = WHILE BTrue SKIP
 
 prog_h : Com
 prog_h =
-  WHILE (BNot (BEq (AId X) (AId X))) $
-    X ::= AId X + 1
+  WHILE (not (X == X)) $
+    X ::= X + 1
 
 prog_i : Com
 prog_i =
-  WHILE (BNot (BEq (AId X) (AId Y))) $
-    X ::= AId Y + 1
+  WHILE (not (X == Y)) $
+    X ::= Y + 1
 
 equiv_classes : List (List Com)
 equiv_classes = [ [prog_a, prog_f, prog_g]
@@ -332,27 +332,27 @@ where forward : ((IFB b1 THEN c1 ELSE c3 FI) / st \\ st') ->
 
 congruence_example : CEquiv
   (do X ::= 0
-      IFB BEq (AId X) 0
+      IFB X == 0
           THEN Y ::= 0
           ELSE Y ::= 42
       FI)
-  (do X ::= ANum 0
-      IFB BEq (AId X) 0
-          THEN Y ::= AMinus (AId X) (AId X)
+  (do X ::= 0
+      IFB X == 0
+          THEN Y ::= X - X
           ELSE Y ::= 42
       FI)
 congruence_example =
   cSeq_congruence refl_cequiv
                   (cIf_congruence refl_bequiv statements_equiv refl_cequiv)
-where forward : ((Y ::= ANum 0) / st \\ st') ->
-                ((Y ::= AMinus (AId X) (AId X)) / st \\ st')
+where forward : ((Y ::= 0) / st \\ st') ->
+                ((Y ::= X - X) / st \\ st')
       forward {st} (E_Ass prf) = E_Ass $ trans (sym $ minusZeroN (st X)) prf
-      backward : ((Y ::= AMinus (AId X) (AId X)) / st \\ st') ->
-                 ((Y ::= ANum 0) / st \\ st')
+      backward : ((Y ::= X - X) / st \\ st') ->
+                 ((Y ::= 0) / st \\ st')
       backward {st} (E_Ass prf) = rewrite minusZeroN (st X)
                                   in rewrite prf
                                   in E_Ass Refl
-      statements_equiv : CEquiv (Y ::= ANum 0) (Y ::= AMinus (AId X) (AId X))
+      statements_equiv : CEquiv (Y ::= 0) (Y ::= X - X)
       statements_equiv _ _ = (forward, backward)
 
 ATransSound : (atrans : AExp -> AExp) -> Type

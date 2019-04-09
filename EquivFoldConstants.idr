@@ -25,16 +25,11 @@ fold_constants_aexp (AMult a1 a2) =
     (ANum n1, ANum n2) => ANum (n1 * n2)
     (e1, e2) => AMult e1 e2
 
-fold_aexp_example_1 : fold_constants_aexp (AMult (APlus (ANum 1) (ANum 2))
-                                                 (AId X))
-                    = AMult (ANum 3) (AId X)
+fold_aexp_example_1 : fold_constants_aexp ((1 + 2) * X) = 3 * X
 fold_aexp_example_1 = Refl
 
-fold_aexp_example_2 : fold_constants_aexp (AMinus (AId X)
-                                                  (APlus (AMult (ANum 0)
-                                                                (ANum 6))
-                                                         (AId Y)))
-                    = AMinus (AId X) (APlus (ANum 0) (AId Y))
+fold_aexp_example_2 : fold_constants_aexp (X - (0 * 6 + Y))
+                    = X - (0 + Y)
 fold_aexp_example_2 = Refl
 
 fold_constants_bexp : (b : BExp) -> BExp
@@ -59,14 +54,12 @@ fold_constants_bexp (BAnd b1 b2) =
     (BFalse, _) => BFalse
     (e1, e2) => BAnd e1 e2
 
-fold_bexp_example_1 : fold_constants_bexp (BAnd BTrue (BNot (BAnd BFalse BTrue)))
+fold_bexp_example_1 : fold_constants_bexp (BTrue && (not (BFalse && BTrue)))
                     = BTrue
 fold_bexp_example_1 = Refl
 
-fold_bexp_example_2 : fold_constants_bexp (BAnd (BEq (AId X) (AId Y))
-                                                (BEq (ANum 0) (AMinus (ANum 2)
-                                                     (APlus (ANum 1) (ANum 1)))))
-                    = BAnd (BEq (AId X) (AId Y)) BTrue
+fold_bexp_example_2 : fold_constants_bexp ((X == Y) && (0 == 2 - (1 + 1)))
+                    = (X == Y) && BTrue
 fold_bexp_example_2 = Refl
 
 fold_constants_com : (c : Com) -> Com
@@ -87,27 +80,27 @@ fold_constants_com (CWhile b c) =
 
 fold_com_example_1 :
   fold_constants_com
-    (do X ::= APlus (ANum 4) (ANum 5)
-        Y ::= AMinus (AId X) (ANum 3)
-        IFB BEq (AMinus (AId X) (AId Y)) (APlus (ANum 2) (ANum 4))
+    (do X ::= 4 + 5
+        Y ::= X - 3
+        IFB X - Y == 2 + 4
             THEN SKIP
-            ELSE Y ::= ANum 0
+            ELSE Y ::= 0
         FI
-        IFB BLe (ANum 0) (AMinus (ANum 4) (APlus (ANum 2) (ANum 1)))
-            THEN Y ::= ANum 0
+        IFB 0 <= 4 - (2 + 1)
+            THEN Y ::= 0
             ELSE SKIP
         FI
-        WHILE (BEq (AId Y) (ANum 0)) $
-          X ::= APlus (AId X) (ANum 1))
-  = (do X ::= ANum 9
-        Y ::= AMinus (AId X) (ANum 3)
-        IFB BEq (AMinus (AId X) (AId Y)) (ANum 6)
+        WHILE (Y == 0) $
+          X ::= X + 1)
+  = (do X ::= 9
+        Y ::= X - 3
+        IFB X - Y == 6
             THEN SKIP
-            ELSE Y ::= ANum 0
+            ELSE Y ::= 0
         FI
-        Y ::= ANum 0
-        WHILE (BEq (AId Y) (ANum 0)) $
-          X ::= APlus (AId X) (ANum 1))
+        Y ::= 0
+        WHILE (Y == 0) $
+          X ::= X + 1)
 fold_com_example_1 = Refl
 
 fold_constants_aexp_sound : ATransSound EquivFoldConstants.fold_constants_aexp

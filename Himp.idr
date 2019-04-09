@@ -73,7 +73,7 @@ pXY_equiv_pYX : Either (HCEquiv Himp.pXY Himp.pYX)
                        (Not (HCEquiv Himp.pXY Himp.pYX))
 pXY_equiv_pYX = Left $ \st, st' =>
   (forward st st', backward st st')
-where x_neq_y : Not (X = Y)
+where x_neq_y : Not (Imp.X = Imp.Y)
       x_neq_y Refl impossible
       forward : (st, st' : State) ->
                 (Himp.pXY / st \\ st') -> (Himp.pYX / st \\ st')
@@ -94,7 +94,7 @@ ptwice = do HAVOC X
 
 pcopy : HCom
 pcopy = do HAVOC X
-           Y ::= AId X
+           Y ::= X
 
 ptwice_inequiv_pcopy : Either (HCEquiv Himp.ptwice Himp.pcopy)
                               (Not (HCEquiv Himp.ptwice Himp.pcopy))
