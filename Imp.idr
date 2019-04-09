@@ -32,6 +32,11 @@ data AExp : Type where
   AMinus : AExp -> AExp -> AExp
   AMult : AExp -> AExp -> AExp
 
+Num AExp where
+  (+) = APlus
+  (*) = AMult
+  fromInteger = ANum . fromIntegerNat
+
 Uninhabited (ANum _ = AId _) where
   uninhabited Refl impossible
 

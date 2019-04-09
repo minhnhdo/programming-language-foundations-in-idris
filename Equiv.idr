@@ -187,35 +187,35 @@ where forward : (SKIP / st \\ st') -> ((x ::= e) / st \\ st')
 
 prog_a : Com
 prog_a =
-  WHILE (BNot (BLe (AId X) (ANum 0))) $
-    X ::= APlus (AId X) (ANum 1)
+  WHILE (BNot (BLe (AId X) 0)) $
+    X ::= AId X + 1
 
 prog_b : Com
 prog_b = do
-  IFB BEq (AId X) (ANum 0)
-      THEN do X ::= APlus (AId X) (ANum 1)
-              Y ::= ANum 1
-      ELSE Y ::= ANum 0
+  IFB BEq (AId X) 0
+      THEN do X ::= AId X + 1
+              Y ::= 1
+      ELSE Y ::= 0
   FI
   X ::= AMinus (AId X) (AId Y)
-  Y ::= ANum 0
+  Y ::= 0
 
 prog_c : Com
 prog_c = SKIP
 
 prog_d : Com
 prog_d =
-  WHILE (BNot (BEq (AId X) (ANum 0))) $
-    X ::= APlus (AMult (AId X) (AId Y)) (ANum 1)
+  WHILE (BNot (BEq (AId X) 0)) $
+    X ::= (AId X * AId Y) + 1
 
 prog_e : Com
-prog_e = Y ::= ANum 0
+prog_e = Y ::= 0
 
 prog_f : Com
 prog_f = do
-  Y ::= APlus (AId X) (ANum 1)
+  Y ::= AId X + 1
   WHILE (BNot (BEq (AId X) (AId Y))) $
-    Y ::= APlus (AId X) (ANum 1)
+    Y ::= AId X + 1
 
 prog_g : Com
 prog_g = WHILE BTrue SKIP
@@ -223,12 +223,12 @@ prog_g = WHILE BTrue SKIP
 prog_h : Com
 prog_h =
   WHILE (BNot (BEq (AId X) (AId X))) $
-    X ::= APlus (AId X) (ANum 1)
+    X ::= AId X + 1
 
 prog_i : Com
 prog_i =
   WHILE (BNot (BEq (AId X) (AId Y))) $
-    X ::= APlus (AId Y) (ANum 1)
+    X ::= AId Y + 1
 
 equiv_classes : List (List Com)
 equiv_classes = [ [prog_a, prog_f, prog_g]
@@ -331,15 +331,15 @@ where forward : ((IFB b1 THEN c1 ELSE c3 FI) / st \\ st') ->
                                                (snd (c3_equiv_c4 st st') rel)
 
 congruence_example : CEquiv
-  (do X ::= ANum 0
-      IFB BEq (AId X) (ANum 0)
-          THEN Y ::= ANum 0
-          ELSE Y ::= ANum 42
+  (do X ::= 0
+      IFB BEq (AId X) 0
+          THEN Y ::= 0
+          ELSE Y ::= 42
       FI)
   (do X ::= ANum 0
-      IFB BEq (AId X) (ANum 0)
+      IFB BEq (AId X) 0
           THEN Y ::= AMinus (AId X) (AId X)
-          ELSE Y ::= ANum 42
+          ELSE Y ::= 42
       FI)
 congruence_example =
   cSeq_congruence refl_cequiv
