@@ -8,6 +8,9 @@ notInvolutive : (b : Bool) -> not (not b) = b
 notInvolutive False = Refl
 notInvolutive True = Refl
 
+neqSym : Not (a = b) -> Not (b = a)
+neqSym contra prf = contra $ sym prf
+
 iff : {p, q : Type} -> Type
 iff {p} {q} = (p -> q, q -> p)
 
