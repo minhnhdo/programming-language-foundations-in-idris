@@ -60,6 +60,11 @@ havoc_example_2 = E_Seq E_Skip (E_Havoc 42)
 HCEquiv : (c1, c2 : HCom) -> Type
 HCEquiv c1 c2 = (st, st' : State) -> ((c1 / st \\ st') ↔ (c2 / st \\ st'))
 
+havoc_property : Not (x = y) -> st x = n -> ((HAVOC y) / st \\ st') -> st' x = n
+havoc_property contra prf (E_Havoc _) =
+  rewrite snd beq_id_false_iff $ neqSym contra
+  in prf
+
 pXY : HCom
 pXY = do HAVOC X
          HAVOC Y
@@ -68,14 +73,14 @@ pYX : HCom
 pYX = do HAVOC Y
          HAVOC X
 
+x_neq_y : Not (Imp.X = Imp.Y)
+x_neq_y Refl impossible
 
 pXY_equiv_pYX : Either (HCEquiv Himp.pXY Himp.pYX)
                        (Not (HCEquiv Himp.pXY Himp.pYX))
 pXY_equiv_pYX = Left $ \st, st' =>
   (forward st st', backward st st')
-where x_neq_y : Not (Imp.X = Imp.Y)
-      x_neq_y Refl impossible
-      forward : (st, st' : State) ->
+where forward : (st, st' : State) ->
                 (Himp.pXY / st \\ st') -> (Himp.pYX / st \\ st')
       forward st _ (E_Seq (E_Havoc n) (E_Havoc m)) =
         rewrite t_update_permute {x1=Y} {v1=m} {x2=X} {v2=n} {m=st}
@@ -109,3 +114,123 @@ ptwice_inequiv_pcopy = Right $ \equiv =>
        E_Seq _ (E_WhileEnd _) impossible
        E_Seq _ (E_WhileLoop _ _ _) impossible
        E_Seq _ (E_Havoc _) impossible
+
+p1 : HCom
+p1 = WHILE (not (X == 0)) $ do
+       HAVOC Y
+       X ::= X + 1
+
+p2 : HCom
+p2 = WHILE (not (X == 0)) $
+       SKIP
+
+p1_may_diverge : Not (st X = 0) -> Not (Himp.p1 / st \\ st')
+p1_may_diverge {st'} contra (E_WhileEnd prf) with (st' X)
+  p1_may_diverge {st'} contra (E_WhileEnd prf) | Z = contra Refl
+  p1_may_diverge {st'} contra (E_WhileEnd prf) | S _ = absurd prf
+p1_may_diverge contra (E_WhileLoop _ (E_Seq {st2} _ (E_Ass prf)) next) =
+  let h_prf = sym $ trans (plusCommutative 1 (st2 X)) prf
+  in p1_may_diverge {st=t_update Imp.X _ _}
+                    (n_eq_succ__n_neq_0 {k=st2 X} h_prf) next
+
+p2_may_diverge : Not (st X = 0) -> Not (Himp.p2 / st \\ st')
+p2_may_diverge {st'} contra (E_WhileEnd prf) =
+  let st_X_beq_0 = trans (sym (notInvolutive (st' X == 0)))
+                         (cong {f=Bool.not} prf)
+  in contra (fst (nat_beq_iff {n=st' X} {m=0}) st_X_beq_0)
+p2_may_diverge contra (E_WhileLoop _ E_Skip next) = p2_may_diverge contra next
+
+p1_p2_equiv : HCEquiv Himp.p1 Himp.p2
+p1_p2_equiv st st' = (forward, backward)
+where forward : (Himp.p1 / st \\ st') -> (Himp.p2 / st \\ st')
+      forward rel = case rel of
+        E_WhileEnd prf => E_WhileEnd prf
+        E_WhileLoop prf _ _ =>
+          let st_X_neq_0 = fst (nat_nbeq_iff {n=st X} {m=0})
+                               (trans (sym (notInvolutive (st X == 0)))
+                                      (cong {f=Bool.not} prf))
+          in absurd $ p1_may_diverge st_X_neq_0 rel
+      backward : (Himp.p2 / st \\ st') -> (Himp.p1 / st \\ st')
+      backward rel = case rel of
+        E_WhileEnd prf => E_WhileEnd prf
+        E_WhileLoop prf _ _ =>
+          let st_X_neq_0 = fst (nat_nbeq_iff {n=st X} {m=0})
+                               (trans (sym (notInvolutive (st X == 0)))
+                                      (cong {f=Bool.not} prf))
+          in absurd $ p2_may_diverge st_X_neq_0 rel
+
+p3 : HCom
+p3 = do Z ::= 1
+        WHILE (not (X == 0)) $ do
+          HAVOC X
+          HAVOC Z
+
+p4 : HCom
+p4 = do X ::= 0
+        Z ::= 1
+
+p3_p4_inequiv : Not (HCEquiv Himp.p3 Himp.p4)
+p3_p4_inequiv equiv =
+  let st = t_update X 1 empty_state
+      st' = t_update Z 2 $ t_update X 0 $ t_update Z 1 st
+  in case fst (equiv st st')
+              (E_Seq (E_Ass Refl)
+                     (E_WhileLoop Refl
+                                  (E_Seq (E_Havoc 0) (E_Havoc 2))
+                                  (E_WhileEnd Refl))) of
+       (E_Seq (E_Ass _) E_Skip) impossible
+       (E_Seq (E_Ass _) (E_Ass _)) impossible
+       (E_Seq (E_Ass _) (E_Seq _ _)) impossible
+       (E_Seq (E_Ass _) (E_IfTrue _ _)) impossible
+       (E_Seq (E_Ass _) (E_IfFalse _ _)) impossible
+       (E_Seq (E_Ass _) (E_WhileEnd _)) impossible
+       (E_Seq (E_Ass _) (E_WhileLoop _ _ _)) impossible
+       (E_Seq (E_Ass _) (E_Havoc _)) impossible
+
+p5 : HCom
+p5 = WHILE (not (X == 1)) $
+       HAVOC X
+
+p6 : HCom
+p6 = X ::= 1
+
+overwriting_write : ((x ::= ANum n) / (t_update x v st) \\ st') ->
+                    ((x ::= ANum n) / st \\ st')
+overwriting_write {x} {n} {v} {st} (E_Ass prf) =
+  rewrite sym prf
+  in rewrite t_update_shadow {x=x} {v2=n} {v1=v} {m=st}
+  in E_Ass {n=n} Refl
+
+p5_p6_equiv : HCEquiv Himp.p5 Himp.p6
+p5_p6_equiv st st' = (forward st st', backward st st')
+where forward : (st, st' : State) ->
+                (Himp.p5 / st \\ st') -> (Himp.p6 / st \\ st')
+      forward st st' rel = case rel of
+        E_WhileEnd prf =>
+          let st_X_eq_1 = fst (nat_beq_iff {n=st X} {m=1}) $
+                          trans (sym (notInvolutive (st X == 1)))
+                                (cong {f=Bool.not} prf)
+              st_prf = replace {P=\v => t_update X v st = st}
+                               st_X_eq_1 (t_update_same {m=st} {x=X})
+          in replace {P=\x => HCEval (HCAss X 1) st x}
+                     st_prf (Himp.E_Ass Refl)
+        E_WhileLoop {st1 = (t_update Imp.X n st)} _ (E_Havoc n) next =>
+          overwriting_write $ forward (t_update X n st) st' next
+      backward : (st, st' : State) ->
+                 (Himp.p6 / st \\ st') -> (Himp.p5 / st \\ st')
+      backward st st' rel with (st X) proof st_X_prf
+        backward st st' rel | Z = case rel of
+          E_Ass prf => let pf = cong {f=Bool.not . (==1)} $ sym st_X_prf
+                       in rewrite sym prf
+                       in E_WhileLoop pf (E_Havoc 1) (E_WhileEnd Refl)
+        backward st st' rel | S Z = case rel of
+          E_Ass prf => let pf = cong {f=Bool.not . (==1)} $ sym st_X_prf
+                       in rewrite sym prf
+                       in rewrite st_X_prf
+                       in rewrite t_update_same {m=st} {x=X}
+                       in rewrite sym st_X_prf
+                       in E_WhileEnd pf
+        backward st st' rel | S (S k) = case rel of
+          E_Ass prf => let pf = cong {f=Bool.not . (== 1)} $ sym st_X_prf
+                       in rewrite sym prf
+                       in E_WhileLoop pf (E_Havoc 1) (E_WhileEnd Refl)
