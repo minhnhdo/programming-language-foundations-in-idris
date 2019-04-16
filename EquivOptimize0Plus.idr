@@ -296,13 +296,13 @@ optimize_0plus_com_sound {c = (CIf b ct cf)} st st'
             replace {P=\x => beval st1 b = beval st1 x}
                     (sym bprf) (optimize_0plus_bexp_sound b st1)
           ct_equiv = optimize_0plus_com_sound ct
-      in trans_cequiv (if_true b_equiv) (optimize_0plus_com_sound ct) st st'
+      in trans_cequiv (test_true b_equiv) (optimize_0plus_com_sound ct) st st'
     optimize_0plus_com_sound {c = (CIf b ct cf)} st st' | BFalse =
       let b_equiv = \st1 =>
             replace {P=\x => beval st1 b = beval st1 x}
                     (sym bprf) (optimize_0plus_bexp_sound b st1)
           cf_equiv = optimize_0plus_com_sound cf
-      in trans_cequiv (if_false b_equiv) (optimize_0plus_com_sound cf) st st'
+      in trans_cequiv (test_false b_equiv) (optimize_0plus_com_sound cf) st st'
     optimize_0plus_com_sound {c = (CIf b ct cf)} st st' | BEq _ _ =
       let b_equiv = \st1 =>
             replace {P=\x => beval st1 b = beval st1 x}
