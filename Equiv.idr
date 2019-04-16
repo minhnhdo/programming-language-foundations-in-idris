@@ -24,6 +24,9 @@ BEquiv_example st with (st X)
   BEquiv_example st | Z = Refl
   BEquiv_example st | S k = rewrite sym $ minusZeroN k in Refl
 
+btrue_is_true : BEquiv BTrue BTrue
+btrue_is_true _ = Refl
+
 CEquiv : (c1, c2 : Com) -> Type
 CEquiv c1 c2 = (st, st' : State) -> ((c1 / st \\ st') ↔ (c2 / st \\ st'))
 
@@ -111,8 +114,6 @@ where forward : ((WHILE b c) / st \\ st') -> ((WHILE BTrue SKIP) / st \\ st')
       forward rel = case rel of
         E_WhileEnd prf => absurd $ trans (sym $ btrue st) prf
         E_WhileLoop _ _ next => void $ while_true_nonterm btrue next
-      btrue_is_true : BEquiv BTrue BTrue
-      btrue_is_true _ = Refl
       backward : ((WHILE BTrue SKIP) / st \\ st') -> ((WHILE b c) / st \\ st')
       backward rel = case rel of
         E_WhileEnd prf => absurd prf
