@@ -142,6 +142,7 @@ data Com : Type where
   CSeq : Com -> Com -> Com
   CIf : BExp -> Com -> Com -> Com
   CWhile : BExp -> Com -> Com
+  CFor : Com -> BExp -> Com -> Com -> Com
 
 infix 5 ::=
 
@@ -159,6 +160,8 @@ WHILE = CWhile
 
 syntax IFB [c1] THEN [c2] ELSE [c3] FI = CIf c1 c2 c3
 
+syntax FOR [init] ";" [cond] ";" [updt] DO [body] DONE = CFor init cond updt body
+
 data CEval : Com -> State -> State -> Type where
   E_Skip : CEval CSkip st st
   E_Ass : aeval st a1 = n -> CEval (CAss x a1) st (t_update x n st)
@@ -172,6 +175,9 @@ data CEval : Com -> State -> State -> Type where
   E_WhileLoop : beval st b = True ->
                 CEval c st st1 -> CEval (CWhile b c) st1 st2 ->
                 CEval (CWhile b c) st st2
+  E_For : CEval init st1 st2 ->
+          CEval (CWhile cond (CSeq body updt)) st2 st3 ->
+          CEval (CFor init cond updt body) st1 st3
 
 syntax [c1] "/" [st1] "\\\\" [st2] = CEval c1 st1 st2
 
@@ -203,3 +209,10 @@ ceval_deterministic {st2} (E_WhileLoop _ cev11 cev12)
   let ih = ceval_deterministic cev11 cev21
       cev22' = replace (sym ih) cev22 {P=\x=>CEval (CWhile b c) x st2}
   in ceval_deterministic cev12 cev22'
+ceval_deterministic {st2}
+                    (E_For cinit1 cwhile1)
+                    (E_For {cond} {body} {updt} cinit2 cwhile2) =
+  let ih = ceval_deterministic cinit1 cinit2
+      cwhile2' = replace {P=\x => CEval (CWhile cond (CSeq body updt)) x st2}
+                         (sym ih) cwhile2
+  in ceval_deterministic cwhile1 cwhile2'

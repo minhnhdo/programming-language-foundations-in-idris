@@ -10,6 +10,15 @@ import Maps
 
 %default total
 
+for_equiv_while : CEquiv (CFor c1 b c2 c3) (CSeq c1 (CWhile b (CSeq c3 c2)))
+for_equiv_while {c1} {b} {c2} {c3} st st' = (forward, backward)
+where forward : ((CFor c1 b c2 c3) / st \\ st') ->
+                ((CSeq c1 (CWhile b (CSeq c3 c2))) / st \\ st')
+      forward (E_For cinit cwhile) = E_Seq cinit cwhile
+      backward : ((CSeq c1 (CWhile b (CSeq c3 c2))) / st \\ st') ->
+                 ((CFor c1 b c2 c3) / st \\ st')
+      backward (E_Seq cinit cwhile) = E_For cinit cwhile
+
 noninterfering_update : Not (l1 = l2) ->
                         VarNotUsedInAExp l1 a2 ->
                         VarNotUsedInAExp l2 a1 ->
