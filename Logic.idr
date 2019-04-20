@@ -64,3 +64,40 @@ where forward : {n, m : Nat} -> n == m = False -> Not (n = m)
       backward {n = S _} {m = Z} _ = Refl
       backward {n = S k} {m = S j} contra =
         backward {n=k} {m=j} (\prf => contra (cong {f=S} prf))
+
+lte_plus_minus : LTE n m -> n + (minus m n) = m
+lte_plus_minus {n = Z} {m} _ = minusZeroRight m
+lte_plus_minus {n = S _} {m = Z} succ_lte_m = absurd $ succNotLTEzero succ_lte_m
+lte_plus_minus {n = S k} {m = S j} succ_lte_m =
+  cong $ lte_plus_minus (fromLteSucc succ_lte_m)
+
+lte_beq_iff : (n, m : Nat) -> ((lte n m = True) ↔ (LTE n m))
+lte_beq_iff = \n, m => (forward, backward)
+where forward : lte n m = True -> LTE n m
+      forward {n = Z} _ = LTEZero
+      forward {n = S _} {m = Z} prf = absurd prf
+      forward {n = S k} {m = S j} prf = LTESucc (forward prf)
+      backward : LTE n m -> lte n m = True
+      backward LTEZero = Refl
+      backward (LTESucc lte_prf) = backward lte_prf
+
+lte_false_lt_iff : (n, m : Nat) -> ((lte n m = False) ↔ (LT m n))
+lte_false_lt_iff = \n, m => (forward, backward)
+where forward : lte n m = False -> LT m n
+      forward {n = Z} prf = absurd prf
+      forward {n = S _} {m = Z} _ = LTESucc LTEZero
+      forward {n = S k} {m = S j} prf = LTESucc $ forward {n=k} {m=j} prf
+      backward : LT m n -> lte n m = False
+      backward {n = Z} lt_prf = absurd $ succNotLTEzero lt_prf
+      backward {n = S _} {m = Z} _ = Refl
+      backward {n = S k} {m = S j} lt_prf = backward (fromLteSucc lt_prf)
+
+lte_z__eq_z : LTE n 0 -> n = 0
+lte_z__eq_z {n = Z} _ = Refl
+lte_z__eq_z {n = S _} lte_prf = absurd $ succNotLTEzero lte_prf
+
+bounded__eq : LTE n m -> LTE m n -> n = m
+bounded__eq {n = Z} _ above = sym $ lte_z__eq_z above
+bounded__eq {n = S _} {m = Z} below _ = absurd $ succNotLTEzero below
+bounded__eq {n = S _} {m = S _} below above =
+  cong $ bounded__eq (fromLteSucc below) (fromLteSucc above)
