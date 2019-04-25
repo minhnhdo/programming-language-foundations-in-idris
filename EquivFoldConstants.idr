@@ -1,6 +1,7 @@
 module EquivFoldConstants
 
 import Equiv
+import Expr
 import Logic
 import Imp
 import Maps
@@ -63,7 +64,7 @@ fold_bexp_example_2 : fold_constants_bexp ((X == Y) && (0 == 2 - (1 + 1)))
 fold_bexp_example_2 = Refl
 
 fold_constants_com : (c : Com) -> Com
-fold_constants_com CSkip = CSkip
+fold_constants_com CSkip = SKIP
 fold_constants_com (CAss x e) = x ::= fold_constants_aexp e
 fold_constants_com (CSeq c1 c2) = CSeq (fold_constants_com c1)
                                        (fold_constants_com c2)

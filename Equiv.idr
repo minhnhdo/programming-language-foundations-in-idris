@@ -1,5 +1,6 @@
 module Equiv
 
+import Expr
 import Imp
 import Logic
 import Maps

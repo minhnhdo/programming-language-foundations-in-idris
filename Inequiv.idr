@@ -1,6 +1,7 @@
 module Inequiv
 
 import Equiv
+import Expr
 import Imp
 import Maps
 

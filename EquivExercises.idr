@@ -1,6 +1,7 @@
 module EquivExercises
 
 import Equiv
+import Expr
 import Imp
 import Inequiv
 import Logic
