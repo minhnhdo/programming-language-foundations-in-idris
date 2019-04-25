@@ -1,5 +1,6 @@
 module Himp
 
+import Expr
 import Imp
 import Logic
 import Maps
@@ -50,11 +51,11 @@ data HCEval : HCom -> State -> State -> Type where
 
 syntax [c1] "/" [st1] "\\\\" [st2] = HCEval c1 st1 st2
 
-havoc_example_1 : (HAVOC X) / Imp.empty_state \\ (t_update X 0 Imp.empty_state)
+havoc_example_1 : (HAVOC X) / Expr.empty_state \\ (t_update X 0 Expr.empty_state)
 havoc_example_1 = E_Havoc 0
 
 havoc_example_2 : (do SKIP; HAVOC Z)
-                  / Imp.empty_state \\ (t_update Z 42 Imp.empty_state)
+                  / Expr.empty_state \\ (t_update Z 42 Expr.empty_state)
 havoc_example_2 = E_Seq E_Skip (E_Havoc 42)
 
 HCEquiv : (c1, c2 : HCom) -> Type
@@ -73,7 +74,7 @@ pYX : HCom
 pYX = do HAVOC Y
          HAVOC X
 
-x_neq_y : Not (Imp.X = Imp.Y)
+x_neq_y : Not (Expr.X = Expr.Y)
 x_neq_y Refl impossible
 
 pXY_equiv_pYX : Either (HCEquiv Himp.pXY Himp.pYX)
@@ -130,7 +131,7 @@ p1_may_diverge {st'} contra (E_WhileEnd prf) with (st' X)
   p1_may_diverge {st'} contra (E_WhileEnd prf) | S _ = absurd prf
 p1_may_diverge contra (E_WhileLoop _ (E_Seq {st2} _ (E_Ass prf)) next) =
   let h_prf = sym $ trans (plusCommutative 1 (st2 X)) prf
-  in p1_may_diverge {st=t_update Imp.X _ _}
+  in p1_may_diverge {st=t_update X _ _}
                     (n_eq_succ__n_neq_0 {k=st2 X} h_prf) next
 
 p2_may_diverge : Not (st X = 0) -> Not (Himp.p2 / st \\ st')
@@ -214,7 +215,7 @@ where forward : (st, st' : State) ->
                                st_X_eq_1 (t_update_same {m=st} {x=X})
           in replace {P=\x => HCEval (HCAss X 1) st x}
                      st_prf (Himp.E_Ass Refl)
-        E_WhileLoop {st1 = (t_update Imp.X n st)} _ (E_Havoc n) next =>
+        E_WhileLoop {st1 = (t_update Expr.X n st)} _ (E_Havoc n) next =>
           overwriting_write $ forward (t_update X n st) st' next
       backward : (st, st' : State) ->
                  (Himp.p6 / st \\ st') -> (Himp.p5 / st \\ st')

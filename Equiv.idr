@@ -28,6 +28,15 @@ BEquiv_example st with (st X)
 btrue_is_true : BEquiv BTrue BTrue
 btrue_is_true _ = Refl
 
+bfalse_is_false : BEquiv BFalse BFalse
+bfalse_is_false _ = Refl
+
+bnot_btrue_is_bfalse : BEquiv (BNot BTrue) BFalse
+bnot_btrue_is_bfalse _ = Refl
+
+bnot_bfalse_is_btrue : BEquiv (BNot BFalse) BTrue
+bnot_bfalse_is_btrue _ = Refl
+
 CEquiv : (c1, c2 : Com) -> Type
 CEquiv c1 c2 = (st, st' : State) -> ((c1 / st \\ st') ↔ (c2 / st \\ st'))
 
@@ -356,6 +365,19 @@ for_true {init} {cond} {updt} {body} cond_equiv =
   trans_cequiv (for_while_equiv {c1=init} {b=cond} {c2=updt} {c3=body})
                (cSeq_congruence (refl_cequiv {c=init}) (while_true cond_equiv))
 
+cFor_congruence : CEquiv init1 init2 -> BEquiv cond1 cond2 ->
+                  CEquiv updt1 updt2 -> CEquiv body1 body2 ->
+                  CEquiv (CFor init1 cond1 updt1 body1)
+                         (CFor init2 cond2 updt2 body2)
+cFor_congruence init_equiv cond_equiv updt_equiv body_equiv =
+  trans_cequiv for_while_equiv
+               (trans_cequiv
+                  (cSeq_congruence init_equiv
+                                   (cWhile_congruence
+                                      cond_equiv
+                                      (cSeq_congruence body_equiv updt_equiv)))
+                  (sym_cequiv for_while_equiv))
+
 repeat_false : BEquiv b BFalse -> CEquiv (CRepeat c b)
                                          (CSeq c (CWhile BTrue SKIP))
 repeat_false {b} {c} cond_equiv =
@@ -370,6 +392,17 @@ repeat_true {b} {c} cond_equiv =
                   (trans_cequiv (cSeq_congruence refl_cequiv
                                                  (while_false not_cond_equiv))
                                 skip_right)
+
+cRepeat_congruence : CEquiv body1 body2 -> BEquiv cond1 cond2 ->
+                     CEquiv (CRepeat body1 cond1) (CRepeat body2 cond2)
+cRepeat_congruence body_equiv cond_equiv =
+  let not_cond_equiv = \st1 => cong {f=not} (cond_equiv st1)
+  in trans_cequiv repeat_while_equiv
+                  (trans_cequiv
+                     (cSeq_congruence body_equiv
+                                      (cWhile_congruence not_cond_equiv
+                                                         body_equiv))
+                     (sym_cequiv repeat_while_equiv))
 
 cIf_congruence : BEquiv b1 b2 -> CEquiv c1 c2 -> CEquiv c3 c4 ->
                  CEquiv (IFB b1 THEN c1 ELSE c3 FI) (IFB b2 THEN c2 ELSE c4 FI)
