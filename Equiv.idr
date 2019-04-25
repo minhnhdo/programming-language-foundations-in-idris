@@ -93,6 +93,37 @@ where forward : ((IFB b THEN c1 ELSE c2 FI) / st \\ st') ->
                         (cong {f=not} prf))
                  rel
 
+if1_if_equiv : CEquiv (CIf1 b c) (CIf b c SKIP)
+if1_if_equiv {b} {c} st st' = (forward, backward)
+where forward : CEval (CIf1 b c) st st' -> CEval (CIf b c SKIP) st st'
+      forward rel = case rel of
+        E_If1True prf cc => E_IfTrue prf cc
+        E_If1False prf => E_IfFalse prf E_Skip
+      backward : CEval (CIf b c SKIP) st st' -> CEval (CIf1 b c) st st'
+      backward rel = case rel of
+        E_IfTrue prf cct => E_If1True prf cct
+        E_IfFalse prf E_Skip => E_If1False prf
+
+if1_true : BEquiv b BTrue -> CEquiv (CIf1 b c) c
+if1_true {b} btrue st st' = (forward, backward)
+where forward : CEval (CIf1 b c) st st' -> CEval c st st'
+      forward rel = case rel of
+        E_If1True _ cc => cc
+        E_If1False prf => absurd $ trans (sym prf) (btrue st)
+      backward : CEval c st st' -> CEval (CIf1 b c) st st'
+      backward cc = E_If1True (btrue st) cc
+
+
+if1_false : BEquiv b BFalse -> CEquiv (CIf1 b c) SKIP
+if1_false {b} bfalse st st' = (forward, backward)
+where forward : CEval (CIf1 b c) st st' -> CEval SKIP st st'
+      forward rel = case rel of
+        E_If1True prf _ => absurd $ trans (sym prf) (bfalse st)
+        E_If1False _ => E_Skip
+      backward : CEval SKIP st st' -> CEval (CIf1 b c) st st'
+      backward rel = case rel of
+        E_Skip => E_If1False (bfalse st)
+
 while_false : BEquiv b BFalse -> CEquiv (WHILE b c) SKIP
 while_false {b} bfalse st _ = (forward, backward)
 where forward : ((WHILE b c) / st \\ st') -> (SKIP / st \\ st')
@@ -132,6 +163,24 @@ where forward : ((WHILE b c) / st \\ st') ->
       backward (E_IfTrue prf (E_Seq rel next)) = E_WhileLoop prf rel next
       backward (E_IfFalse prf rel) = case rel of
         E_Skip => E_WhileEnd prf
+
+for_while_equiv : CEquiv (CFor c1 b c2 c3) (CSeq c1 (CWhile b (CSeq c3 c2)))
+for_while_equiv {c1} {b} {c2} {c3} st st' = (forward, backward)
+where forward : ((CFor c1 b c2 c3) / st \\ st') ->
+                ((CSeq c1 (CWhile b (CSeq c3 c2))) / st \\ st')
+      forward (E_For cinit cwhile) = E_Seq cinit cwhile
+      backward : ((CSeq c1 (CWhile b (CSeq c3 c2))) / st \\ st') ->
+                 ((CFor c1 b c2 c3) / st \\ st')
+      backward (E_Seq cinit cwhile) = E_For cinit cwhile
+
+repeat_while_equiv : CEquiv (CRepeat c b) (CSeq c (CWhile (not b) c))
+repeat_while_equiv {c} {b} st st' = (forward, backward)
+where forward : CEval (CRepeat c b) st st' ->
+                CEval (CSeq c (CWhile (not b) c)) st st'
+      forward (E_Repeat cc cwhile) = E_Seq cc cwhile
+      backward : CEval (CSeq c (CWhile (not b) c)) st st' ->
+                 CEval (CRepeat c b) st st'
+      backward (E_Seq cc cwhile) = E_Repeat cc cwhile
 
 seq_assoc : CEquiv (do (do c1; c2); c3) (do c1; (do c2; c3))
 seq_assoc st st' = (forward, backward)
@@ -294,6 +343,34 @@ where forward : ((do c1; c3) / st \\ st') -> ((do c2; c4) / st \\ st')
       backward (E_Seq {st2} r3 r4) = E_Seq (snd (c1_equiv_c2 st st2) r3)
                                            (snd (c3_equiv_c4 st2 st') r4)
 
+for_false : BEquiv cond BFalse -> CEquiv (CFor init cond updt body) init
+for_false {init} {cond} {updt} {body} cond_equiv =
+  trans_cequiv (for_while_equiv {c1=init} {b=cond} {c2=updt} {c3=body})
+               (trans_cequiv (cSeq_congruence (refl_cequiv {c=init})
+                                              (while_false cond_equiv))
+                             (skip_right {c=init}))
+
+for_true : BEquiv cond BTrue -> CEquiv (CFor init cond updt body)
+                                       (CSeq init (CWhile BTrue SKIP))
+for_true {init} {cond} {updt} {body} cond_equiv =
+  trans_cequiv (for_while_equiv {c1=init} {b=cond} {c2=updt} {c3=body})
+               (cSeq_congruence (refl_cequiv {c=init}) (while_true cond_equiv))
+
+repeat_false : BEquiv b BFalse -> CEquiv (CRepeat c b)
+                                         (CSeq c (CWhile BTrue SKIP))
+repeat_false {b} {c} cond_equiv =
+  let not_cond_equiv = \st1 => cong {f=not} (cond_equiv st1)
+  in trans_cequiv repeat_while_equiv
+                  (cSeq_congruence refl_cequiv (while_true not_cond_equiv))
+
+repeat_true : BEquiv b BTrue -> CEquiv (CRepeat c b) c
+repeat_true {b} {c} cond_equiv =
+  let not_cond_equiv = \st1 => cong {f=not} (cond_equiv st1)
+  in trans_cequiv repeat_while_equiv
+                  (trans_cequiv (cSeq_congruence refl_cequiv
+                                                 (while_false not_cond_equiv))
+                                skip_right)
+
 cIf_congruence : BEquiv b1 b2 -> CEquiv c1 c2 -> CEquiv c3 c4 ->
                  CEquiv (IFB b1 THEN c1 ELSE c3 FI) (IFB b2 THEN c2 ELSE c4 FI)
 cIf_congruence {b1} {b2} {c1} {c2} {c3} {c4}
@@ -311,6 +388,14 @@ where forward : ((IFB b1 THEN c1 ELSE c3 FI) / st \\ st') ->
                                              (snd (c1_equiv_c2 st st') rel)
       backward (E_IfFalse prf rel) = E_IfFalse (trans (b1_equiv_b2 st) prf)
                                                (snd (c3_equiv_c4 st st') rel)
+
+cIf1_congruence : BEquiv b1 b2 -> CEquiv c1 c2 ->
+                  CEquiv (CIf1 b1 c1) (CIf1 b2 c2)
+cIf1_congruence b_equiv c_equiv =
+  trans_cequiv
+    (trans_cequiv if1_if_equiv
+                  (cIf_congruence b_equiv c_equiv (refl_cequiv {c=SKIP})))
+    (sym_cequiv if1_if_equiv)
 
 congruence_example : CEquiv
   (do X ::= 0

@@ -75,8 +75,6 @@ repeat_example_1 = E_Repeat (E_Seq (E_Ass Refl)
                                    (E_Ass Refl))
                             (E_WhileEnd Refl)
 
-
-
 ceval_deterministic : (c / st \\ st1) -> (c / st \\ st2) -> st1 = st2
 ceval_deterministic E_Skip E_Skip = Refl
 ceval_deterministic (E_Ass aev1) (E_Ass aev2) =
