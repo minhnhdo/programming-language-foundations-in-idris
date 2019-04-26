@@ -1,7 +1,6 @@
 module Himp
 
 import Expr
-import Imp
 import Logic
 import Maps
 
@@ -19,6 +18,8 @@ data HCom : Type where
 
 SKIP : HCom
 SKIP = HCSkip
+
+infix 5 ::=
 
 (::=) : Id -> AExp -> HCom
 (::=) = HCAss
@@ -235,3 +236,29 @@ where forward : (st, st' : State) ->
           E_Ass prf => let pf = cong {f=Bool.not . (== 1)} $ sym st_X_prf
                        in rewrite sym prf
                        in E_WhileLoop pf (E_Havoc 1) (E_WhileEnd Refl)
+
+Assertion : Type
+Assertion = State -> Type
+
+AssertImplies : (p, q : Assertion) -> Type
+AssertImplies p q = (st : State) -> p st -> q st
+
+infixr 8 ->>
+
+(->>) : (p, q : Assertion) -> Type
+(->>) = AssertImplies
+
+infix 8 <<->>
+
+(<<->>) : (p, q : Assertion) -> Type
+(<<->>) p q = (AssertImplies p q, AssertImplies q p)
+
+HoareTriple : (p : Assertion) -> (c : HCom) -> (q : Assertion) -> Type
+HoareTriple p c q = (st, st' : State) -> (c / st \\ st') -> p st -> q st'
+
+HoarePre : (x : Id) -> (q : Assertion) -> Assertion
+HoarePre x q = \st => (n : Nat) -> q (t_update x n st)
+
+hoare_havoc : (q : Assertion) -> (x : Id) ->
+              HoareTriple (HoarePre x q) (HAVOC x) q
+hoare_havoc q x st _ (E_Havoc n) p_st = p_st n
