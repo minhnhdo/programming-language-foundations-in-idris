@@ -38,32 +38,32 @@ iff_trans : (p ↔ q) -> (q ↔ r) -> (p ↔ r)
 iff_trans (p_imp_q, q_imp_p) (q_imp_r, r_imp_q) =
   (q_imp_r . p_imp_q, q_imp_p . r_imp_q)
 
-nat_beq_iff : {n, m : Nat} -> (n == m = True) ↔ (n = m)
-nat_beq_iff = (forward, backward)
-where forward : {n, m : Nat} -> n == m = True -> n = m
-      forward {n = Z} {m = Z} _ = Refl
-      forward {n = Z} {m = S _} prf = absurd prf
-      forward {n = S _} {m = Z} prf = absurd prf
-      forward {n = S k} {m = S j} prf = cong {f=S} (forward prf)
-      backward : {n, m : Nat} -> n = m -> n == m = True
-      backward {n = Z} {m = Z} _ = Refl
-      backward {n = Z} {m = S _} prf = absurd prf
-      backward {n = S _} {m = Z} prf = absurd prf
-      backward {n = S k} {m = S j} prf = backward (succInjective k j prf)
+nat_beq_iff : (n, m : Nat) -> (n == m = True) ↔ (n = m)
+nat_beq_iff = \n, m => (forward n m, backward n m)
+where forward : (n, m : Nat) -> n == m = True -> n = m
+      forward Z Z _ = Refl
+      forward Z (S _) prf = absurd prf
+      forward (S _) Z prf = absurd prf
+      forward (S k) (S j) prf = cong {f=S} (forward k j prf)
+      backward : (n, m : Nat) -> n = m -> n == m = True
+      backward Z Z _ = Refl
+      backward Z (S _) prf = absurd prf
+      backward (S _) Z prf = absurd prf
+      backward (S k) (S j) prf = backward k j (succInjective k j prf)
 
-nat_nbeq_iff : {n, m : Nat} -> (n == m = False) ↔ (Not (n = m))
-nat_nbeq_iff = (forward, backward)
-where forward : {n, m : Nat} -> n == m = False -> Not (n = m)
-      forward {n = Z} {m = Z} bprf _ = absurd bprf
-      forward {n = Z} {m = S _} _ prf = SIsNotZ $ sym prf
-      forward {n = S _} {m = Z} _ prf = SIsNotZ prf
-      forward {n = S k} {m = S j} bprf prf = forward bprf (succInjective k j prf)
-      backward : {n, m : Nat} -> Not (n = m) -> n == m = False
-      backward {n = Z} {m = Z} contra = absurd $ contra Refl
-      backward {n = Z} {m = S _} _ = Refl
-      backward {n = S _} {m = Z} _ = Refl
-      backward {n = S k} {m = S j} contra =
-        backward {n=k} {m=j} (\prf => contra (cong {f=S} prf))
+nat_nbeq_iff : (n, m : Nat) -> (n == m = False) ↔ (Not (n = m))
+nat_nbeq_iff = \n, m => (forward n m, backward n m)
+where forward : (n, m : Nat) -> n == m = False -> Not (n = m)
+      forward Z Z bprf _ = absurd bprf
+      forward Z (S _) _ prf = SIsNotZ $ sym prf
+      forward (S _) Z _ prf = SIsNotZ prf
+      forward (S k) (S j) bprf prf = forward k j bprf (succInjective k j prf)
+      backward : (n, m : Nat) -> Not (n = m) -> n == m = False
+      backward Z Z contra = absurd $ contra Refl
+      backward Z (S _) _ = Refl
+      backward (S _) Z _ = Refl
+      backward (S k) (S j) contra =
+        backward k j (\prf => contra (cong {f=S} prf))
 
 lte_plus_minus : LTE n m -> n + (minus m n) = m
 lte_plus_minus {n = Z} {m} _ = minusZeroRight m
@@ -101,3 +101,7 @@ bounded__eq {n = Z} _ above = sym $ lte_z__eq_z above
 bounded__eq {n = S _} {m = Z} below _ = absurd $ succNotLTEzero below
 bounded__eq {n = S _} {m = S _} below above =
   cong $ bounded__eq (fromLteSucc below) (fromLteSucc above)
+
+nat_neq__0_lt : Not (n = 0) -> LT 0 n
+nat_neq__0_lt {n = Z} contra = absurd $ contra Refl
+nat_neq__0_lt {n = (S _)} _ = LTESucc LTEZero

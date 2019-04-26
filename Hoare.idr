@@ -285,7 +285,7 @@ if_example =
               (Y ::= 2)
               (hoare_assign (\st => (LTE (st X) (st Y), BAssn (X == 0) st)) Y 2)
               (\st, (_, p_st) => ( replace {P=\x => LTE x 2}
-                                           (sym (fst (nat_beq_iff {n=st X} {m=0})
+                                           (sym (fst (nat_beq_iff (st X) 0)
                                                 p_st))
                                            LTEZero
                                  , p_st ))
@@ -389,3 +389,116 @@ always_loop_hoare p q =
            (WHILE BTrue SKIP)
            htw
            (\st, (_, contra) => absurd (contra Refl))
+
+hoare_if1 : (p, q : Assertion) -> (b : BExp) -> (c : Com) ->
+            HoareTriple (\st => (p st, BAssn b st)) c q ->
+            (\st => (p st, Not (BAssn b st))) ->> q ->
+            HoareTriple p (CIf1 b c) q
+hoare_if1 p q b c htc _ st st' (E_If1True prf cc) p_st =
+  htc st st' cc (p_st, prf)
+hoare_if1 p q b c _ imp st _ (E_If1False prf) p_st =
+  imp st (p_st, snd not_true_iff_false prf)
+
+hoare_if1_good : HoareTriple (\st => st X + st Y = st Z)
+                             (IF1 not (Y == 0) THEN
+                                  X ::= X + Y
+                              FI)
+                             (\st => st X = st Z)
+hoare_if1_good =
+  let htc = hoare_consequence
+              (\st => (st X + st Y = st Z, not (st Y == 0) = True))
+              (AssignSub X (X + Y)
+                         (\st => (st X = st Z, not (st Y == 0) = True)))
+              (\st => st X = st Z)
+              (\st => (st X = st Z, not (st Y == 0) = True))
+              (X ::= X + Y)
+              (hoare_assign (\st => (st X = st Z, not (st Y == 0) = True))
+                            X
+                            (X + Y))
+              (\_, p_st => p_st)
+              (\st, (q_st, _) => q_st)
+      hts = hoare_consequence
+              (\st => (st X + st Y = st Z, Not (not (st Y == 0) = True)))
+              (\st => (st X = st Z, Not (not (st Y == 0) = True)))
+              (\st => st X = st Z)
+              (\st => (st X = st Z, Not (not (st Y == 0) = True)))
+              SKIP
+              (hoare_skip (\st => (st X = st Z, Not (not (st Y == 0) = True))))
+              (\st, (plus_st_X_st_Y__st_Z, prf) =>
+                  let st_Y_eq_0 = fst (nat_beq_iff (st Y) 0)
+                                      (trans (sym (notInvolutive (st Y == 0)))
+                                             (cong {f=not}
+                                                   (fst not_true_iff_false prf)))
+                      pf = trans (sym (plusZeroRightNeutral (st X)))
+                                 (replace {P=\x => st X + x = st Z}
+                                          st_Y_eq_0 plus_st_X_st_Y__st_Z)
+                  in (pf, prf))
+              (\st, (q_st, _) => q_st)
+      imp = \st, (plus_st_X_st_Y__st_Z, prf) =>
+        let st_Y_eq_0 = fst (nat_beq_iff (st Y) 0)
+                            (trans (sym (notInvolutive (st Y == 0)))
+                                   (cong {f=not} (fst not_true_iff_false prf)))
+        in trans (sym (plusZeroRightNeutral (st X)))
+                 (replace {P=\x => st X + x = st Z}
+                          st_Y_eq_0 plus_st_X_st_Y__st_Z)
+  in hoare_if1 (\st => st X + st Y = st Z)
+               (\st => st X = st Z)
+               (not (Y == 0))
+               (X ::= X + Y)
+               htc
+               imp
+
+hoare_repeat : (p, q : Assertion) -> (c : Com) -> (b : BExp) ->
+               HoareTriple p c q ->
+               (\st => (q st, Not (BAssn b st))) ->> p ->
+               HoareTriple p (CRepeat c b) (\st => (q st, BAssn b st))
+hoare_repeat p q c b htc imp st st' (E_Repeat cc (E_WhileEnd prf)) p_st =
+  let q_st' = htc st st' cc p_st
+      btrue = trans (sym (notInvolutive (beval st' b))) (cong {f=not} prf)
+  in (q_st', btrue)
+hoare_repeat p q c b htc imp st st'
+             r@(E_Repeat {st1} cc1 (E_WhileLoop prf cc2 cnext)) p_st =
+  let q_st1 = htc st st1 cc1 p_st
+      bfalse = bexp_eval_false b st1 (trans (sym (notInvolutive (beval st1 b)))
+                                            (cong {f=not} prf))
+      p_st1 = imp st1 (q_st1, bfalse)
+  in hoare_repeat p q c b htc imp st1 st'
+                  (assert_smaller r (E_Repeat cc2 cnext)) p_st1
+
+hoare_repeat_good : HoareTriple (\st => LT 0 (st X))
+                                (REPEAT do
+                                   Y ::= X
+                                   X ::= X - 1
+                                 UNTIL X == 0 END)
+                                (\st => (st X = 0, LT 0 (st Y)))
+hoare_repeat_good =
+  let hty = hoare_assign (\st => LT 0 (st Y)) Y X
+      htx = hoare_assign (\st => LT 0 (st Y)) X (X - 1)
+      htc = hoare_seq (\st => LT 0 (st X))
+                      (\st => LT 0 (st Y))
+                      (\st => LT 0 (st Y))
+                      (Y ::= X)
+                      (X ::= X - 1)
+                      htx
+                      hty
+      ht_repeat = hoare_repeat
+                    (\st => LT 0 (st X))
+                    (\st => LT 0 (st Y))
+                    (do Y ::= X
+                        X ::= X - 1)
+                    (X == 0)
+                    htc
+                    (\st, (_, prf) =>
+                        nat_neq__0_lt (fst (nat_nbeq_iff (st X) 0)
+                                           (fst not_true_iff_false prf)))
+  in hoare_consequence_post (\st => LT 0 (st X))
+                            (\st => (st X = 0, LT 0 (st Y)))
+                            (\st => (LT 0 (st Y), BAssn (X == 0) st))
+                            (REPEAT do
+                               Y ::= X
+                               X ::= X - 1
+                             UNTIL X == 0 END)
+                            ht_repeat
+                            (\st, (lte_prf, prf) =>
+                                let pf = fst (nat_beq_iff (st X) 0) prf
+                                in (pf, lte_prf))

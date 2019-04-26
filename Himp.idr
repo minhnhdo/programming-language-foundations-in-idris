@@ -138,7 +138,7 @@ p2_may_diverge : Not (st X = 0) -> Not (Himp.p2 / st \\ st')
 p2_may_diverge {st'} contra (E_WhileEnd prf) =
   let st_X_beq_0 = trans (sym (notInvolutive (st' X == 0)))
                          (cong {f=Bool.not} prf)
-  in contra (fst (nat_beq_iff {n=st' X} {m=0}) st_X_beq_0)
+  in contra (fst (nat_beq_iff (st' X) 0) st_X_beq_0)
 p2_may_diverge contra (E_WhileLoop _ E_Skip next) = p2_may_diverge contra next
 
 p1_p2_equiv : HCEquiv Himp.p1 Himp.p2
@@ -147,7 +147,7 @@ where forward : (Himp.p1 / st \\ st') -> (Himp.p2 / st \\ st')
       forward rel = case rel of
         E_WhileEnd prf => E_WhileEnd prf
         E_WhileLoop prf _ _ =>
-          let st_X_neq_0 = fst (nat_nbeq_iff {n=st X} {m=0})
+          let st_X_neq_0 = fst (nat_nbeq_iff (st X) 0)
                                (trans (sym (notInvolutive (st X == 0)))
                                       (cong {f=Bool.not} prf))
           in absurd $ p1_may_diverge st_X_neq_0 rel
@@ -155,7 +155,7 @@ where forward : (Himp.p1 / st \\ st') -> (Himp.p2 / st \\ st')
       backward rel = case rel of
         E_WhileEnd prf => E_WhileEnd prf
         E_WhileLoop prf _ _ =>
-          let st_X_neq_0 = fst (nat_nbeq_iff {n=st X} {m=0})
+          let st_X_neq_0 = fst (nat_nbeq_iff (st X) 0)
                                (trans (sym (notInvolutive (st X == 0)))
                                       (cong {f=Bool.not} prf))
           in absurd $ p2_may_diverge st_X_neq_0 rel
@@ -208,9 +208,9 @@ where forward : (st, st' : State) ->
                 (Himp.p5 / st \\ st') -> (Himp.p6 / st \\ st')
       forward st st' rel = case rel of
         E_WhileEnd prf =>
-          let st_X_eq_1 = fst (nat_beq_iff {n=st X} {m=1}) $
-                          trans (sym (notInvolutive (st X == 1)))
-                                (cong {f=Bool.not} prf)
+          let st_X_eq_1 = fst (nat_beq_iff (st X) 1)
+                              (trans (sym (notInvolutive (st X == 1)))
+                                     (cong {f=Bool.not} prf))
               st_prf = replace {P=\v => t_update X v st = st}
                                st_X_eq_1 (t_update_same {m=st} {x=X})
           in replace {P=\x => HCEval (HCAss X 1) st x}
