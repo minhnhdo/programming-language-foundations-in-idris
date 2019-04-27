@@ -1,5 +1,6 @@
 module HoareAssertAssume
 
+import Assn
 import Expr
 import Logic
 import Maps
@@ -65,22 +66,6 @@ data CEval : Com -> State -> Result -> Type where
   E_Assume : beval st b = True -> CEval (CAssume b) st (RNormal st)
 
 syntax [c1] "/" [st1] "\\\\" [st2] = CEval c1 st1 st2
-
-Assertion : Type
-Assertion = State -> Type
-
-AssertImplies : (p, q : Assertion) -> Type
-AssertImplies p q = (st : State) -> p st -> q st
-
-infixr 8 ->>
-
-(->>) : (p, q : Assertion) -> Type
-(->>) = AssertImplies
-
-infix 8 <<->>
-
-(<<->>) : (p, q : Assertion) -> Type
-(<<->>) p q = (AssertImplies p q, AssertImplies q p)
 
 HoareTriple : (p : Assertion) -> (c : Com) -> (q : Assertion) -> Type
 HoareTriple p c q = (st : State) -> (r : Result) -> (c / st \\ r) -> p st ->
