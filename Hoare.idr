@@ -320,7 +320,7 @@ while_example st st' rel lte_prf =
                                                    (snd p_st))))
       htw = hoare_while (\st => LTE (st X) 3) (X <= 2) (X ::= X + 1) htc'
       (below, contra) = htw st st' rel lte_prf
-  in bounded__eq below (fst (lte_false_lt_iff (st' X) 2)
+  in bounded__eq below (fst (lte_nbeq_iff (st' X) 2)
                             (fst not_true_iff_false contra))
 
 always_loop_hoare : (p, q : Assertion) -> HoareTriple p (WHILE BTrue SKIP) q
@@ -440,8 +440,9 @@ hoare_repeat_good =
                     (X == 0)
                     htc
                     (\st, (_, prf) =>
-                        nat_neq__0_lt (fst (nat_nbeq_iff (st X) 0)
-                                           (fst not_true_iff_false prf)))
+                        notZeroImpliesGTZero
+                          (fst (nat_nbeq_iff (st X) 0)
+                          (fst not_true_iff_false prf)))
   in hoare_consequence_post (\st => LT 0 (st X))
                             (\st => (st X = 0, LT 0 (st Y)))
                             (\st => (LT 0 (st Y), BAssn (X == 0) st))

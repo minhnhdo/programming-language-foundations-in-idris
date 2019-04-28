@@ -81,8 +81,8 @@ where forward : lte n m = True -> LTE n m
       backward LTEZero = Refl
       backward (LTESucc lte_prf) = backward lte_prf
 
-lte_false_lt_iff : (n, m : Nat) -> ((lte n m = False) ↔ (LT m n))
-lte_false_lt_iff = \n, m => (forward, backward)
+lte_nbeq_iff : (n, m : Nat) -> ((lte n m = False) ↔ (LT m n))
+lte_nbeq_iff = \n, m => (forward, backward)
 where forward : lte n m = False -> LT m n
       forward {n = Z} prf = absurd prf
       forward {n = S _} {m = Z} _ = LTESucc LTEZero
@@ -96,12 +96,40 @@ lte_z__eq_z : LTE n 0 -> n = 0
 lte_z__eq_z {n = Z} _ = Refl
 lte_z__eq_z {n = S _} lte_prf = absurd $ succNotLTEzero lte_prf
 
+lte_succ_minus : LTE n m -> minus (S m) n = S (minus m n)
+lte_succ_minus {n = Z} {m} lte_prf = rewrite minusZeroRight m in Refl
+lte_succ_minus {n = S _} {m = Z} lte_prf = absurd $ succNotLTEzero lte_prf
+lte_succ_minus {n = S k} {m = S j} lte_prf = lte_succ_minus (fromLteSucc lte_prf)
+
+lte_minus_plus_sum : LTE k n -> minus n k + plus m k = n + m
+lte_minus_plus_sum {k = Z} {n} {m} lte_prf =
+  rewrite minusZeroRight n
+  in rewrite plusZeroRightNeutral m
+  in Refl
+lte_minus_plus_sum {k = S _} {n = Z} lte_prf = absurd $ succNotLTEzero lte_prf
+lte_minus_plus_sum {k = S i} {n = S k} {m} lte_prf =
+  rewrite sym (plusSuccRightSucc m i)
+  in rewrite sym (plusSuccRightSucc (minus k i) (m + i))
+  in cong (lte_minus_plus_sum (fromLteSucc lte_prf))
+
 bounded__eq : LTE n m -> LTE m n -> n = m
 bounded__eq {n = Z} _ above = sym $ lte_z__eq_z above
 bounded__eq {n = S _} {m = Z} below _ = absurd $ succNotLTEzero below
 bounded__eq {n = S _} {m = S _} below above =
   cong $ bounded__eq (fromLteSucc below) (fromLteSucc above)
 
-nat_neq__0_lt : Not (n = 0) -> LT 0 n
-nat_neq__0_lt {n = Z} contra = absurd $ contra Refl
-nat_neq__0_lt {n = (S _)} _ = LTESucc LTEZero
+notZeroImpliesGTZero : Not (n = 0) -> LT 0 n
+notZeroImpliesGTZero {n = Z} contra = absurd $ contra Refl
+notZeroImpliesGTZero {n = (S _)} _ = LTESucc LTEZero
+
+plusCong : {a, b, n, m : Nat} -> a = n -> b = m -> a + b = n + m
+plusCong prf1 prf2 = rewrite prf1 in rewrite prf2 in Refl
+
+fromNotLteSucc : Not (LTE (S n) (S m)) -> Not (LTE n m)
+fromNotLteSucc contra lte_prf = contra (LTESucc lte_prf)
+
+lteImpliesNotGT : LTE n m -> Not (GT n m)
+lteImpliesNotGT {n = Z} _ = succNotLTEzero
+lteImpliesNotGT {n = S _} {m = Z} lte_prf = absurd $ succNotLTEzero lte_prf
+lteImpliesNotGT {n = S k} {m = S j} lte_prf = \succ_prf =>
+  lteImpliesNotGT (fromLteSucc lte_prf) (fromLteSucc succ_prf)
