@@ -247,3 +247,12 @@ HavocPre x q = \st => (n : Nat) -> q (t_update x n st)
 hoare_havoc : (q : Assertion) -> (x : Id) ->
               HoareTriple (HavocPre x q) (HAVOC x) q
 hoare_havoc q x st _ (E_Havoc n) p_st = p_st n
+
+IsWP : (p : Assertion) -> (c : HCom) -> (q : Assertion) -> Type
+IsWP p c q = ( HoareTriple p c q
+             , (p' : Assertion) -> HoareTriple p' c q -> p' ->> p )
+
+hoare_havoc_weakest : IsWP (HavocPre x q) (HAVOC x) q
+hoare_havoc_weakest {x} {q} = (hoare_havoc q x, imp)
+where imp : (p' : Assertion) -> HoareTriple p' (HAVOC x) q -> p' ->> HavocPre x q
+      imp p' ht st p'_st n = ht st _ (E_Havoc n) p'_st
