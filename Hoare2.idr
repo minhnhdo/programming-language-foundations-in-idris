@@ -339,3 +339,51 @@ dpow2_down m = do
     {{ (Y = 2^(X+1) - 1, Z = 2^X, Not (BAssn (not (X == m)) st)) }}
     ->> {{ Y = 2^(m+1) - 1 }}
   -}
+
+IsWP : (p : Assertion) -> (c : Com) -> (q : Assertion) -> Type
+IsWP p c q = ( HoareTriple p c q
+             , (p' : Assertion) -> HoareTriple p' c q -> p' ->> p )
+
+{-
+  {{ X = 5 }} SKIP {{ X = 5 }}
+
+  {{ Y + Z = 5 }} X ::= Y + Z {{ X = 5 }}
+
+  {{ True }} X ::= Y {{ X = Y }}
+
+  {{ Either (X = 0, Z = 4) (Not (X = 0), W = 3) }}
+  IFB X == 0 THEN Y ::= Z + 1 ELSE Y ::= W + 2 FI
+  {{ Y = 5 }}
+
+  {{ Void }} X ::= 5 {{ X = 0 }}
+
+  {{ () }}
+  WHILE BTrue $ do X ::= 0
+  {{ X = 0 }}
+-}
+
+is_wp_example : IsWP (\st => LTE (st Y) 4)
+                     (X ::= Y + 1)
+                     (\st => LTE (st X) 5)
+is_wp_example = (ht, imp)
+where ht : HoareTriple (\st => LTE (st Y) 4) (X ::= Y + 1) (\st => LTE (st X) 5)
+      ht = hoare_consequence_pre (\st => LTE (st Y) 4)
+                                 (\st => LTE (st Y + 1) 5)
+                                 (\st => LTE (st X) 5)
+                                 (X ::= Y + 1)
+                                 (hoare_assign (\st => LTE (st X) 5) X (Y + 1))
+                                 (\st, p_st => rewrite plusCommutative (st Y) 1
+                                               in LTESucc p_st)
+      imp : (p' : Assertion) ->
+            HoareTriple p' (X ::= Y + 1) (\st => LTE (st X) 5) ->
+            p' ->> (\st => LTE (st Y) 4)
+      imp p' ht' st p'_st =
+        fromLteSucc (replace {P=\x => LTE x 5}
+                             (plusCommutative (st Y) 1)
+                             (ht' st _ (E_Ass Refl) p'_st))
+
+hoare_assign_weakest : IsWP (AssignSub x a q) (x ::= a) q
+hoare_assign_weakest {x} {a} {q} = (hoare_assign q x a, imp)
+where imp : (p' : Assertion) -> HoareTriple p' (x ::= a) q ->
+            p' ->> AssignSub x a q
+      imp p' ht st p'_st = ht st _ (E_Ass Refl) p'_st
