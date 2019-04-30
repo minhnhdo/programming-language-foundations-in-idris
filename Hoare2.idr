@@ -208,3 +208,134 @@ parity_correct {m} =
                contra = fromNotLteSucc (lteImpliesNotGT lte_prf)
            in rewrite sym prf
            in sym (parity_lt_2 (st X) contra))
+
+factorial : Com
+factorial = do
+  {-
+    {{ X = m }}
+    ->> {{ 1 * X! = m! }}
+  -}
+  Y ::= 1
+  -- {{ Y * X! = m! }}
+  WHILE (not (X == 0)) $ do
+    {-
+      {{ (Y * X! = m!, BAssn (not (X == 0)) st) }}
+      ->> {{ Y * X * (X - 1)! = m! }}
+    -}
+    Y ::= Y * X
+    -- {{ Y * (X - 1)! = m! }}
+    X ::= X - 1
+    -- {{ Y * X! = m! }}
+  {-
+    {{ (Y * X! = m!, Not (BAssn (not (X == 0)) st)) }}
+    ->> {{ Y = m! }}
+  -}
+
+lemma1 : (x, y : Nat) -> Either (x = 0) (y = 0) -> minimum x y = 0
+lemma1 _ _ (Left x_prf) = rewrite x_prf in Refl
+lemma1 Z _ (Right _) = Refl
+lemma1 (S _) _ (Right y_prf) = rewrite y_prf in Refl
+
+lemma2 : (x, y : Nat) ->
+         minimum (x `minus` 1) (y `minus` 1) = minimum x y `minus` 1
+lemma2 Z _ = Refl
+lemma2 (S k) Z = minimumZeroZeroLeft (minus k 0)
+lemma2 (S k) (S j) = rewrite minusZeroRight k
+                     in rewrite minusZeroRight j
+                     in rewrite minusZeroRight (minimum k j)
+                     in Refl
+
+min : (a, b : Nat) -> Com
+min a b = do
+  {-
+    {{ () }}
+    ->> {{ 0 = minimum a b - minimum a b }}
+  -}
+  X ::= ANum a
+  -- {{ 0 = minimum a b - minimum X b }}
+  Y ::= ANum b
+  -- {{ 0 = minimum a b - minimum X Y }}
+  Z ::= 0
+  -- {{ Z = minimum a b - minimum X Y }}
+  WHILE (not (X == 0) && not (Y == 0)) $ do
+    {-
+      {{ (Z = minimum a b - minimum X Y, BAssn (not (X == 0) && not (Y == 0)) st) }}
+      ->> {{ Z + 1 = minimum a b - minimum (X - 1) (Y - 1) }}
+    -}
+    X ::= X - 1
+    -- {{ Z + 1 = minimum a b - minimum X (Y - 1) }}
+    Y ::= Y - 1
+    -- {{ Z + 1 = minimum a b - minimum X Y }}
+    Z ::= Z + 1
+    -- {{ Z = minimum a b - minimum X Y }}
+  {-
+    {{ (Z = minimum a b - minimum X Y, Not (BAssn (not (X == 0) && not (Y == 0)) st)) }}
+    ->> {{ Z ::= minimum a b }}
+  -}
+
+two_loops : (a, b, c : Nat) -> Com
+two_loops a b c = do
+  {-
+    {{ () }}
+    ->> {{ c = 0 + 0 + c }}
+  -}
+  X ::= 0
+  -- {{ c = X + 0 + c }}
+  Y ::= 0
+  -- {{ c = X + Y + c }}
+  Z ::= ANum c
+  -- {{ Z = X + Y + c }}
+  WHILE (not (X == ANum a)) $ do
+    {-
+      {{ (Z = X + Y + c, BAssn (not (X == a)) st) }}
+      ->> {{Z + 1 = X + 1 + Y + c }}
+    -}
+    X ::= X + 1
+    -- {{ Z + 1 = X + Y + c }}
+    Z ::= Z + 1
+    -- {{ Z = X + Y + c }}
+  {-
+    {{ (Z = X + Y + c, Not (BAssn (not (X == a)) st)) }}
+    ->> {{ Z = a + Y + c }}
+  -}
+  WHILE (not (Y == ANum b)) $ do
+    {-
+      {{ (Z = a + Y + c, BAssn (not (Y == b)) st) }}
+      ->> {{ Z + 1 = a + Y + 1 + c }}
+    -}
+    Y ::= Y + 1
+    -- {{ Z + 1 = a + Y + c }}
+    Z ::= Z + 1
+    -- {{ Z = a + Y + c }}
+  {-
+    {{ (Z = a + Y + c, Not (BAssn (not (Y == b)) st)) }}
+    ->> {{ Z = a + b + c }}
+  -}
+
+dpow2_down : (m : Nat) -> Com
+dpow2_down m = do
+  {-
+    {{ () }}
+    ->> {{ (1 = 2^(0+1) - 1, 1 = 2^0) }}
+  -}
+  X ::= 0
+  -- {{ (1 = 2^(X+1) - 1, 1 = 2^X) }}
+  Y ::= 1
+  -- {{ (Y = 2^(X+1) - 1, 1 = 2^X) }}
+  Z ::= 1
+  -- {{ (Y = 2^(X+1) - 1, Z = 2^X) }}
+  WHILE (not (X == ANum m)) $ do
+    {-
+      {{ (Y = 2^(X+1) - 1, Z = 2^X, BAssn (not (X == m)) st) }}
+      ->> {{ (Y + 2*Z = 2^(X+1+1) - 1, 2*Z = 2^(X+1)) }}
+    -}
+    Z ::= 2 * Z
+    -- {{ (Y + Z = 2^(X+1+1) - 1, Z = 2^(X+1)) }}
+    Y ::= Y + Z
+    -- {{ (Y = 2^(X+1+1) - 1, Z = 2^(X+1)) }}
+    X ::= X + 1
+    -- {{ (Y = 2^(X+1) - 1, Z = 2^X) }}
+  {-
+    {{ (Y = 2^(X+1) - 1, Z = 2^X, Not (BAssn (not (X == m)) st)) }}
+    ->> {{ Y = 2^(m+1) - 1 }}
+  -}
