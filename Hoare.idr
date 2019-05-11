@@ -399,6 +399,21 @@ hoare_if1_good =
                htc
                imp
 
+hoare_for : (p, q : Assertion) -> (init : Com) -> (cond : BExp) ->
+            (updt, body : Com) -> HoareTriple p init q ->
+            HoareTriple (\st => (q st, BAssn cond st)) (do body; updt) q ->
+            HoareTriple p
+                        (CFor init cond updt body)
+                        (\st => (q st, Not (BAssn cond st)))
+hoare_for p q init cond updt body ht_init ht_body_updt st st'
+          (E_For ci (E_WhileEnd prf)) p_st =
+  (ht_init st st' ci p_st, bexp_eval_false cond st' prf)
+hoare_for p q init cond updt body ht_init ht_body_updt st st'
+          (E_For ci {st2} (E_WhileLoop {st1} prf cb cn)) p_st =
+  let q_st2 = ht_init st st2 ci p_st
+      q_st1 = ht_body_updt st2 st1 cb (q_st2, prf)
+  in hoare_while q cond (do body; updt) ht_body_updt st1 st' cn q_st1
+
 hoare_repeat : (p, q : Assertion) -> (c : Com) -> (b : BExp) ->
                HoareTriple p c q ->
                (\st => (q st, Not (BAssn b st))) ->> p ->
