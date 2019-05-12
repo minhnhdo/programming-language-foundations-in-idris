@@ -1,6 +1,7 @@
 module Assn
 
 import Expr
+import Logic
 import Maps
 
 %access public export
@@ -69,3 +70,7 @@ bexp_eval_true _ _ prf = prf
 bexp_eval_false : (b : BExp) -> (st : State) ->
                   beval st b = False -> Not (BAssn b st)
 bexp_eval_false _ _ bfalse btrue = absurd $ trans (sym bfalse) btrue
+
+bassn_eval_false : (b : BExp) -> (st : State) ->
+                   Not (BAssn b st) -> beval st b = False
+bassn_eval_false _ _ contra = fst not_true_iff_false contra

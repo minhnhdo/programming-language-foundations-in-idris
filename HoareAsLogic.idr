@@ -86,3 +86,73 @@ h_post_true_deriv {c = (CRepeat c _)} =
   H_Consequence (H_Repeat (h_post_true_deriv {c=c}) (\_, _ => ()))
                 (\_, _ => ())
                 (\_, _ => ())
+
+h_pre_false_deriv : HoareProof (const Void) c q
+h_pre_false_deriv {c = CSkip} = h_consequence_pre H_Skip (\_, v => absurd v)
+h_pre_false_deriv {c = (CAss x e)} = h_consequence_pre H_Ass (\_, v => absurd v)
+h_pre_false_deriv {c = (CSeq c1 c2)} = H_Seq (h_pre_false_deriv {c=c1})
+                                             (h_pre_false_deriv {c=c2})
+h_pre_false_deriv {c = (CIf _ ct cf)} =
+  H_If (h_consequence_pre (h_pre_false_deriv {c=ct}) (\_, (v, _) => v))
+       (h_consequence_pre (h_pre_false_deriv {c=cf}) (\_, (v, _) => v))
+h_pre_false_deriv {c = (CIf1 _ c)} =
+  H_If1 (h_consequence_pre (h_pre_false_deriv {c=c}) (\_, (v, _) => v))
+        (\_, (v, _) => absurd v)
+h_pre_false_deriv {c = (CWhile _ c)} =
+  h_consequence_post
+    (H_While (h_consequence_pre (h_pre_false_deriv {c=c} {q=const Void})
+                                (\_, (v, _) => v)))
+    (\_, (v, _) => absurd v)
+h_pre_false_deriv {c = f@(CFor init _ updt body)} =
+  h_consequence_post
+    (H_For (h_pre_false_deriv {c=init} {q=const Void})
+           (h_consequence_pre
+              (h_pre_false_deriv {c=assert_smaller f (do body; updt)})
+              (\_, (v, _) => v)))
+    (\_, (v, _) => absurd v)
+h_pre_false_deriv {c = (CRepeat c _)} =
+  h_consequence_post
+    (H_Repeat (h_pre_false_deriv {c=c} {q=const Void}) (\_, (v, _) => v))
+    (\_, (v, _) => absurd v)
+
+WP : Com -> Assertion -> Assertion
+WP c q = \s => (s' : State) -> CEval c s s' -> q s'
+
+wp_is_precondition : HoareTriple (WP c q) c q
+wp_is_precondition _ st' rel = \wp => wp st' rel
+
+wp_is_weakest : HoareTriple p' c q -> (st : State) -> p' st -> WP c q st
+wp_is_weakest ht st p'_st = \st', rel => ht st st' rel p'_st
+
+hoare_proof_complete : HoareTriple p c q -> HoareProof p c q
+hoare_proof_complete {c = CSkip} ht =
+  h_consequence_post H_Skip (\st, p_st => ht st st E_Skip p_st)
+hoare_proof_complete {c = (CAss x e)} ht =
+  h_consequence_pre
+    H_Ass (\st, q_st => ht st (t_update x (aeval st e) st) (E_Ass Refl) q_st)
+hoare_proof_complete {q} {c = (CSeq c1 c2)} ht =
+  H_Seq
+    (hoare_proof_complete
+      {c=c1} {q=WP c2 q}
+      (\st1, _, r1, p_st, st3, r2 => ht st1 st3 (E_Seq r1 r2) p_st))
+    (hoare_proof_complete {c=c2} (\_, st', rel, wp => wp st' rel))
+hoare_proof_complete {c = (CIf b ct cf)} ht =
+  H_If
+    (hoare_proof_complete
+      (\st, st', rel, (p_st, prf) => ht st st' (E_IfTrue prf rel) p_st))
+    (hoare_proof_complete
+      (\st, st', rel, (p_st, contra) =>
+        ht st st' (E_IfFalse (bassn_eval_false b st contra) rel) p_st))
+hoare_proof_complete {c = (CIf1 b c)} ht =
+  H_If1
+    (hoare_proof_complete
+      (\st, st', rel, (p_st, prf) => ht st st' (E_If1True prf rel) p_st))
+    (\st, (p_st, contra) =>
+      ht st st (E_If1False (bassn_eval_false b st contra)) p_st)
+hoare_proof_complete {c = (CWhile b c)} ht =
+  h_consequence_post
+    (H_While (hoare_proof_complete {c=c} ?hoare_proof_complete_rhs_6))
+    (\st, (p_st, contra) =>
+      ht st st (E_WhileEnd (bassn_eval_false b st contra)) p_st)
+hoare_proof_complete {c = (CFor init cond updt body)} ht = ?hoare_proof_complete_rhs_7
+hoare_proof_complete {c = (CRepeat c b)} ht = ?hoare_proof_complete_rhs_8
