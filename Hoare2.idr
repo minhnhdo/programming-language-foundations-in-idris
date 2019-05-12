@@ -23,18 +23,13 @@ reduce_to_zero_correct =
               (\st => ((), BAssn (not (X == 0)) st))
               (AssignSub X (X - 1) (const ()))
               (const ())
-              (X ::= X - 1)
-              (hoare_assign (const ()) X (X - 1))
+              (hoare_assign (const ()))
               (\_, _ => ())
-      htw = hoare_while (const ())
-                        (not (X == 0))
-                        (X ::= X - 1)
-                        htc
+      htw = hoare_while (const ()) htc
   in hoare_consequence_post
        (const ())
        (\st => st X = 0)
        (\st => ((), Not (BAssn (not (X == 0)) st)))
-       Hoare2.reduce_to_zero
        htw
        (\st, (_, contra) =>
            fst (nat_beq_iff (st X) 0)
@@ -74,15 +69,13 @@ slow_assignment_correct {m} =
               (\st => st X = m)
               (AssignSub Y 0 (\st => (st X = m, st Y = 0)))
               (\st => (st X = m, st Y = 0))
-              (Y ::= 0)
-              (hoare_assign (\st => (st X = m, st Y = 0)) Y 0)
+              (hoare_assign (\st => (st X = m, st Y = 0)))
               (\st, p_st => (p_st, Refl))
       htx = hoare_consequence_pre
               (\st => (st X + st Y = m, BAssn (not (X == 0)) st))
               (\st => minus (st X) 1 + (st Y + 1) = m)
               (\st => st X + (st Y + 1) = m)
-              (X ::= X - 1)
-              (hoare_assign (\st => st X + (st Y + 1) = m) X (X - 1))
+              (hoare_assign (\st => st X + (st Y + 1) = m))
               (\st, (prf, x_prf) =>
                   let lte_prf =
                         notZeroImpliesGTZero
@@ -91,43 +84,29 @@ slow_assignment_correct {m} =
                                       (cong {f=not} x_prf)))
                   in rewrite sym prf
                   in lte_minus_plus_sum lte_prf)
-      hty' = hoare_assign (\st => st X + st Y = m) Y (Y + 1)
+      hty' = hoare_assign (\st => st X + st Y = m)
       ht_body = hoare_seq (\st => (st X + st Y = m, BAssn (not (X == 0)) st))
                           (\st => st X + (st Y + 1) = m)
                           (\st => st X + st Y = m)
-                          (X ::= X - 1)
-                          (Y ::= Y + 1)
                           hty'
                           htx
       htw = hoare_consequence_pre
               (\st => (st X = m, st Y = 0))
               (\st => st X + st Y = m)
               (\st => (st X + st Y = m, Not (BAssn (not (X == 0)) st)))
-              (WHILE (not (X == 0)) $ do
-                 X ::= X - 1
-                 Y ::= Y + 1)
-              (hoare_while (\st => st X + st Y = m)
-                           (not (X == 0))
-                           (do X ::= X - 1
-                               Y ::= Y + 1)
-                           ht_body)
+              (hoare_while (\st => st X + st Y = m) ht_body)
               (\_, (x_prf, y_prf) => trans (plusCong x_prf y_prf)
                                            (plusZeroRightNeutral m))
       ht_program = hoare_seq (\st => st X = m)
                              (\st => (st X = m, st Y = 0))
                              (\st => ( st X + st Y = m
                                      , Not (BAssn (not (X == 0)) st) ))
-                             (Y ::= 0)
-                             (WHILE (not (X == 0)) $ do
-                                X ::= X - 1
-                                Y ::= Y + 1)
                              htw
                              hty
   in hoare_consequence_post
        (\st => st X = m)
        (\st => st Y = m)
        (\st => (st X + st Y = m, Not (BAssn (not (X == 0)) st)))
-       Hoare2.slow_assignment
        ht_program
        (\st, (prf, contra) =>
            let st_X_eq_0 =
@@ -183,23 +162,17 @@ parity_correct {m} =
               (\st => (parity (st X) = parity m, BAssn (2 <= X) st))
               (AssignSub X (X - 2) (\st => parity (st X) = parity m))
               (\st => parity (st X) = parity m)
-              (X ::= X - 2)
-              (hoare_assign (\st => parity (st X) = parity m) X (X - 2))
+              (hoare_assign (\st => parity (st X) = parity m))
               (\st, (prf, cond_prf) =>
                   rewrite parity_ge_2 (st X)
                                       (fst (lte_beq_iff 2 (st X)) cond_prf)
                   in prf)
-      htw = hoare_while (\st => parity (st X) = parity m)
-                        (2 <= X)
-                        (X ::= X - 2)
-                        htx
+      htw = hoare_while (\st => parity (st X) = parity m) htx
   in hoare_consequence
        (\st => st X = m)
        (\st => parity (st X) = parity m)
        (\st => st X = parity m)
        (\st => (parity (st X) = parity m, Not (BAssn (2 <= X) st)))
-       (WHILE (2 <= X) $ do
-          X ::= X - 2)
        htw
        (\st, p_st => cong p_st)
        (\st, (prf, nbeq_prf) =>
@@ -370,8 +343,7 @@ where ht : HoareTriple (\st => LTE (st Y) 4) (X ::= Y + 1) (\st => LTE (st X) 5)
       ht = hoare_consequence_pre (\st => LTE (st Y) 4)
                                  (\st => LTE (st Y + 1) 5)
                                  (\st => LTE (st X) 5)
-                                 (X ::= Y + 1)
-                                 (hoare_assign (\st => LTE (st X) 5) X (Y + 1))
+                                 (hoare_assign (\st => LTE (st X) 5))
                                  (\st, p_st => rewrite plusCommutative (st Y) 1
                                                in LTESucc p_st)
       imp : (p' : Assertion) ->
@@ -383,7 +355,7 @@ where ht : HoareTriple (\st => LTE (st Y) 4) (X ::= Y + 1) (\st => LTE (st X) 5)
                              (ht' st _ (E_Ass Refl) p'_st))
 
 hoare_assign_weakest : IsWP (AssignSub x a q) (x ::= a) q
-hoare_assign_weakest {x} {a} {q} = (hoare_assign q x a, imp)
+hoare_assign_weakest {x} {a} {q} = (hoare_assign q, imp)
 where imp : (p' : Assertion) -> HoareTriple p' (x ::= a) q ->
             p' ->> AssignSub x a q
       imp p' ht st p'_st = ht st _ (E_Ass Refl) p'_st

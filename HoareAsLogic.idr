@@ -46,23 +46,21 @@ sample_proof = H_Seq H_Ass H_Ass
 
 hoare_proof_sound : HoareProof p c q -> HoareTriple p c q
 hoare_proof_sound {q} H_Skip = hoare_skip q
-hoare_proof_sound (H_Ass {x} {a} {q}) = hoare_assign q x a
-hoare_proof_sound (H_Seq {p} {q} {r} {c} {d} hp1 hp2) =
-  hoare_seq p q r c d (hoare_proof_sound hp2) (hoare_proof_sound hp1)
-hoare_proof_sound (H_If {p} {q} {b} {c1} {c2} hpt hpf) =
-  hoare_if p q b c1 c2 (hoare_proof_sound hpt) (hoare_proof_sound hpf)
-hoare_proof_sound (H_If1 {p} {q} {b} {c} hp imp) =
-  hoare_if1 p q b c (hoare_proof_sound hp) imp
-hoare_proof_sound (H_While {p} {b} {c} hp) =
-  hoare_while p b c (hoare_proof_sound hp)
-hoare_proof_sound (H_For {p} {q} {init} {cond} {updt} {body}
-                         hp_init hp_body_updt) =
-  hoare_for p q init cond updt body
-            (hoare_proof_sound hp_init) (hoare_proof_sound hp_body_updt)
-hoare_proof_sound (H_Repeat {p} {q} {c} {b} hp imp) =
-  hoare_repeat p q c b (hoare_proof_sound hp) imp
-hoare_proof_sound (H_Consequence {p} {c} {q} {p'} {q'} hp p_imp q_imp) =
-  hoare_consequence p p' q q' c (hoare_proof_sound hp) p_imp q_imp
+hoare_proof_sound (H_Ass {q}) = hoare_assign q
+hoare_proof_sound (H_Seq {p} {q} {r} hp1 hp2) =
+  hoare_seq p q r (hoare_proof_sound hp2) (hoare_proof_sound hp1)
+hoare_proof_sound (H_If {p} {q} {b} hpt hpf) =
+  hoare_if p q (hoare_proof_sound hpt) (hoare_proof_sound hpf)
+hoare_proof_sound (H_If1 {p} {q} hp imp) =
+  hoare_if1 p q (hoare_proof_sound hp) imp
+hoare_proof_sound (H_While {p} {b} hp) =
+  hoare_while p (hoare_proof_sound hp)
+hoare_proof_sound (H_For {p} {q} hp_init hp_body_updt) =
+  hoare_for p q (hoare_proof_sound hp_init) (hoare_proof_sound hp_body_updt)
+hoare_proof_sound (H_Repeat {p} {q} hp imp) =
+  hoare_repeat p q (hoare_proof_sound hp) imp
+hoare_proof_sound (H_Consequence {p} {q} {p'} {q'} hp p_imp q_imp) =
+  hoare_consequence p p' q q' (hoare_proof_sound hp) p_imp q_imp
 
 h_post_true_deriv : HoareProof p c (const ())
 h_post_true_deriv {c = CSkip} = h_consequence_pre H_Skip (\_, _ => ())
