@@ -63,14 +63,11 @@ AssignSub x a p = \st => p (t_update x (aeval st a) st)
 BAssn : (b : BExp) -> Assertion
 BAssn b = \st => beval st b = True
 
-bexp_eval_true : (b : BExp) -> (st : State) ->
-                 beval st b = True -> BAssn b st
-bexp_eval_true _ _ prf = prf
+bexp_eval_true : beval st b = True -> BAssn b st
+bexp_eval_true prf = prf
 
-bexp_eval_false : (b : BExp) -> (st : State) ->
-                  beval st b = False -> Not (BAssn b st)
-bexp_eval_false _ _ bfalse btrue = absurd $ trans (sym bfalse) btrue
+bexp_eval_false : beval st b = False -> Not (BAssn b st)
+bexp_eval_false bfalse btrue = absurd $ trans (sym bfalse) btrue
 
-bassn_eval_false : (b : BExp) -> (st : State) ->
-                   Not (BAssn b st) -> beval st b = False
-bassn_eval_false _ _ contra = fst not_true_iff_false contra
+bassn_eval_false : Not (BAssn b st) -> beval st b = False
+bassn_eval_false contra = fst not_true_iff_false contra

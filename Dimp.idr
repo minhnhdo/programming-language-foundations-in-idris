@@ -131,12 +131,12 @@ verification_correct (DCIf b pt dt pf df q) p
 verification_correct (DCIf b pt dt pf df q) p
                      (p_pt_imp, p_pf_imp, pt_q_imp, pf_q_imp, vc_pt_dt, vc_pf_df)
                      st st' (E_IfFalse prf cf) p_st =
-  let pf_st = p_pf_imp st (p_st, bexp_eval_false b st prf)
+  let pf_st = p_pf_imp st (p_st, bexp_eval_false prf)
       post_df_st' = verification_correct df pf vc_pf_df st st' cf pf_st
   in pf_q_imp st' post_df_st'
 verification_correct (DCWhile b pd d q) p (p_d_imp, d_pd_imp, d_q_imp, vc_pd_d)
                      st _ (E_WhileEnd prf) p_st =
-  d_q_imp st (p_d_imp st p_st, bexp_eval_false b st prf)
+  d_q_imp st (p_d_imp st p_st, bexp_eval_false prf)
 verification_correct w@(DCWhile b pd d q) p (p_d_imp, d_pd_imp, d_q_imp, vc_pd_d)
                      st st' (E_WhileLoop {st1} prf cbody cnext) p_st =
   let pd_st = d_pd_imp st (p_d_imp st p_st, prf)

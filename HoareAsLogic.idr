@@ -142,17 +142,17 @@ hoare_proof_complete {c = (CIf b ct cf)} ht =
       (\st, st', rel, (p_st, prf) => ht st st' (E_IfTrue prf rel) p_st))
     (hoare_proof_complete
       (\st, st', rel, (p_st, contra) =>
-        ht st st' (E_IfFalse (bassn_eval_false b st contra) rel) p_st))
+        ht st st' (E_IfFalse (bassn_eval_false contra) rel) p_st))
 hoare_proof_complete {c = (CIf1 b c)} ht =
   H_If1
     (hoare_proof_complete
       (\st, st', rel, (p_st, prf) => ht st st' (E_If1True prf rel) p_st))
     (\st, (p_st, contra) =>
-      ht st st (E_If1False (bassn_eval_false b st contra)) p_st)
+      ht st st (E_If1False (bassn_eval_false contra)) p_st)
 hoare_proof_complete {c = (CWhile b c)} ht =
   h_consequence_post
     (H_While (hoare_proof_complete {c=c} ?hoare_proof_complete_rhs_6))
     (\st, (p_st, contra) =>
-      ht st st (E_WhileEnd (bassn_eval_false b st contra)) p_st)
+      ht st st (E_WhileEnd (bassn_eval_false contra)) p_st)
 hoare_proof_complete {c = (CFor init cond updt body)} ht = ?hoare_proof_complete_rhs_7
 hoare_proof_complete {c = (CRepeat c b)} ht = ?hoare_proof_complete_rhs_8

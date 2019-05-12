@@ -127,13 +127,13 @@ hoare_if : (p, q : Assertion) -> (b : BExp) -> (ct, cf : Com) ->
 hoare_if p q b ct cf htct htcf st r (E_IfTrue prf cct) p_st =
   htct st r cct (p_st, prf)
 hoare_if p q b ct cf htct htcf st r (E_IfFalse prf ccf) p_st =
-  htcf st r ccf (p_st, bexp_eval_false b st prf)
+  htcf st r ccf (p_st, bexp_eval_false prf)
 
 hoare_while : (p : Assertion) -> (b : BExp) -> (c : Com) ->
               HoareTriple (\st => (p st, BAssn b st)) c p ->
               HoareTriple p (CWhile b c) (\st => (p st, Not (BAssn b st)))
 hoare_while p b c htc st (RNormal st) (E_WhileEnd prf) p_st =
-  (st ** (Refl, p_st, bexp_eval_false b st prf))
+  (st ** (Refl, p_st, bexp_eval_false prf))
 hoare_while p b c htc st r w@(E_WhileLoopNormal {st1} prf cc cnext) p_st =
   let (st2 ** (pf, p_st2)) = htc st (RNormal st1) cc (p_st, prf)
       cnext' = assert_smaller w

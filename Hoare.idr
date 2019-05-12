@@ -222,7 +222,7 @@ hoare_if : (p, q : Assertion) -> (b : BExp) -> (c1, c2 : Com) ->
 hoare_if p q b c1 c2 ht1 ht2 st st' (E_IfTrue prf cc1) p_st =
   ht1 st st' cc1 (p_st, prf)
 hoare_if p q b c1 c2 ht1 ht2 st st' (E_IfFalse prf cc2) p_st =
-  ht2 st st' cc2 (p_st, bexp_eval_false b st prf)
+  ht2 st st' cc2 (p_st, bexp_eval_false prf)
 
 if_example : HoareTriple (const ())
                          (CIf (X == 0) (Y ::= 2) (Y ::= X + 1))
@@ -407,7 +407,7 @@ hoare_for : (p, q : Assertion) -> (init : Com) -> (cond : BExp) ->
                         (\st => (q st, Not (BAssn cond st)))
 hoare_for p q init cond updt body ht_init ht_body_updt st st'
           (E_For ci (E_WhileEnd prf)) p_st =
-  (ht_init st st' ci p_st, bexp_eval_false cond st' prf)
+  (ht_init st st' ci p_st, bexp_eval_false prf)
 hoare_for p q init cond updt body ht_init ht_body_updt st st'
           (E_For ci {st2} (E_WhileLoop {st1} prf cb cn)) p_st =
   let q_st2 = ht_init st st2 ci p_st
@@ -425,8 +425,8 @@ hoare_repeat p q c b htc imp st st' (E_Repeat cc (E_WhileEnd prf)) p_st =
 hoare_repeat p q c b htc imp st st'
              r@(E_Repeat {st1} cc1 (E_WhileLoop prf cc2 cnext)) p_st =
   let q_st1 = htc st st1 cc1 p_st
-      bfalse = bexp_eval_false b st1 (trans (sym (notInvolutive (beval st1 b)))
-                                            (cong {f=not} prf))
+      bfalse = bexp_eval_false (trans (sym (notInvolutive (beval st1 b)))
+                                      (cong {f=not} prf))
       p_st1 = imp st1 (q_st1, bfalse)
   in hoare_repeat p q c b htc imp st1 st'
                   (assert_smaller r (E_Repeat cc2 cnext)) p_st1
