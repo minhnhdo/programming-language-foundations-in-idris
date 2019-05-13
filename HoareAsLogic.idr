@@ -2,8 +2,10 @@ module HoareAsLogic
 
 import Assn
 import Expr
+import Equiv
 import Hoare
 import Imp
+import Logic
 import Maps
 
 %access public export
@@ -147,10 +149,38 @@ hoare_proof_complete {c = (CIf1 b c)} ht =
       (\st, st', rel, (p_st, prf) => ht st st' (E_If1True prf rel) p_st))
     (\st, (p_st, contra) =>
       ht st st (E_If1False (bassn_eval_false contra)) p_st)
-hoare_proof_complete {c = (CWhile b c)} ht =
-  h_consequence_post
-    (H_While (hoare_proof_complete {c=c} ?hoare_proof_complete_rhs_6))
-    (\st, (p_st, contra) =>
-      ht st st (E_WhileEnd (bassn_eval_false contra)) p_st)
-hoare_proof_complete {c = (CFor init cond updt body)} ht = ?hoare_proof_complete_rhs_7
-hoare_proof_complete {c = (CRepeat c b)} ht = ?hoare_proof_complete_rhs_8
+hoare_proof_complete {c = (CWhile b c)} {q} ht =
+  H_Consequence
+    {p'=WP (CWhile b c) q}
+    (H_While
+      (hoare_proof_complete {c=c} $ \_, _, rel, (wp, prf), st'', rel' =>
+        wp st'' (E_WhileLoop prf rel rel')))
+    (\st, p_st, st', rel => ht st st' rel p_st)
+    (\st, (wp, contra) => wp st (E_WhileEnd (bassn_eval_false contra)))
+hoare_proof_complete {c = f@(CFor init cond updt body)} {q} ht =
+  H_Consequence
+    {p'=WP (CFor init cond updt body) q}
+    (H_For
+      {q=WP (CWhile cond (do body; updt)) q}
+      (hoare_proof_complete $ \_, _, rel, wp, st'', rel' =>
+        wp st'' (E_For rel rel'))
+      (hoare_proof_complete
+        {c=assert_smaller f (do body; updt)}
+        (\_, _, rel, (wp, prf), st'', rel' =>
+          wp st'' (E_WhileLoop prf rel rel'))))
+    (\st, p_st, st', rel => ht st st' rel p_st)
+    (\st, (wp, contra) => wp st (E_WhileEnd (bassn_eval_false contra)))
+hoare_proof_complete {c = (CRepeat c b)} {q} ht =
+  H_Consequence
+    {p'=WP (CRepeat c b) q}
+    (H_Repeat
+      {q=WP (CWhile (not b) c) q}
+      (hoare_proof_complete $
+        \_, _, rel, wp, st'', rel' => wp st'' (E_Repeat rel rel'))
+      (\st, (wp, contra), st', (E_Repeat r1 r2) =>
+        let rel = snd (loop_unrolling {b=not b} {c=c} st st')
+                      (E_IfTrue (cong {f=not} (fst not_true_iff_false contra))
+                                (E_Seq r1 r2))
+        in wp st' rel))
+    (\st, p_st, st', rel => ht st st' rel p_st)
+    (\st, (wp, prf) => wp st (E_WhileEnd (cong {f=not} prf)))
