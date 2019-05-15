@@ -133,3 +133,9 @@ lteImpliesNotGT {n = Z} _ = succNotLTEzero
 lteImpliesNotGT {n = S _} {m = Z} lte_prf = absurd $ succNotLTEzero lte_prf
 lteImpliesNotGT {n = S k} {m = S j} lte_prf = \succ_prf =>
   lteImpliesNotGT (fromLteSucc lte_prf) (fromLteSucc succ_prf)
+
+Relation : (p : Type) -> Type
+Relation p = p -> p -> Type
+
+Deterministic : (r : Relation p) -> Type
+Deterministic {p} r = {x, y1, y2 : p} -> r x y1 -> r x y2 -> y1 = y2

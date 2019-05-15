@@ -53,12 +53,6 @@ test_step_2 : P (C 0) (P (C 2) (P (C 0) (C 3))) -+>
               P (C 0) (P (C 2) (C (0 + 3)))
 test_step_2 = ST_Plus2 (V_Const 0) (ST_Plus2 (V_Const 2) ST_PlusConstConst)
 
-Relation : (p : Type) -> Type
-Relation p = p -> p -> Type
-
-Deterministic : (r : Relation p) -> Type
-Deterministic {p} r = {x, y1, y2 : p} -> r x y1 -> r x y2 -> y1 = y2
-
 step_deterministic : Deterministic Step
 step_deterministic ST_PlusConstConst ST_PlusConstConst =
   Refl
@@ -279,3 +273,39 @@ step_normalizing (P t1 t2) =
                                ST_PlusConstConst impossible
                                ST_Plus1 _ impossible
                                ST_Plus2 _ _ impossible))
+
+eval__multistep : t =+> n -> t -+>* C n
+eval__multistep E_Const = MultiRefl
+eval__multistep (E_Plus {n1} e1 e2) =
+  multi_trans (multistep_congr_1 (eval__multistep e1)) $
+  multi_trans (multistep_congr_2 (V_Const n1) (eval__multistep e2)) $
+  MultiStep ST_PlusConstConst MultiRefl
+
+step__eval : t -+> t' -> t' =+> n -> t =+> n
+step__eval ST_PlusConstConst E_Const = E_Plus E_Const E_Const
+step__eval (ST_Plus1 s1) (E_Plus e1 e2) = E_Plus (step__eval s1 e1) e2
+step__eval (ST_Plus2 _ s2) (E_Plus e1 e2) = E_Plus e1 (step__eval s2 e2)
+
+multistep__eval : NormalFormOf t t' -> (n : Nat ** (t' = C n, t =+> n))
+multistep__eval (MultiRefl, nf) =
+  let V_Const n = nf_is_value nf
+  in (n ** (Refl, E_Const))
+multistep__eval p@(MultiStep {y} once next, nf) =
+  let (n ** (prf, e)) = multistep__eval (assert_smaller p (next, nf))
+  in (n ** (prf, step__eval once e))
+
+evalF_eval : (evalF t = n) ↔ (t =+> n)
+evalF_eval = (forward, backward)
+where forward : evalF t = n -> t =+> n
+      forward {t = (C _)} prf = rewrite prf in E_Const
+      forward {t = (P t1 t2)} prf with (evalF t1) proof prf1
+        forward {t = (P t1 t2)} prf | _ with (evalF t2) proof prf2
+          forward {t = (P t1 t2)} prf | _ | _ =
+            rewrite sym prf
+            in E_Plus (forward (sym prf1)) (forward (sym prf2))
+      backward : t =+> n -> evalF t = n
+      backward E_Const = Refl
+      backward (E_Plus e1 e2) =
+        rewrite backward e1
+        in rewrite backward e2
+        in Refl
