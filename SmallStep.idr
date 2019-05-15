@@ -233,3 +233,49 @@ test_multistep_4 = MultiStep (ST_Plus2 (V_Const 0)
 
 NormalFormOf : (t, t' : Tm) -> Type
 NormalFormOf t t' = (t -+>* t', NormalForm Step t')
+
+normal_forms_unique : Deterministic NormalFormOf
+normal_forms_unique (MultiRefl, _) (MultiRefl, _) = Refl
+normal_forms_unique (MultiRefl, contra) (MultiStep {y} x_step_y _, _) =
+  absurd (contra (y ** x_step_y))
+normal_forms_unique (MultiStep {y} x_step_y _, _) (MultiRefl, contra) =
+  absurd (contra (y ** x_step_y))
+normal_forms_unique {y2}
+                    p@(MultiStep x_step_y y_step_y1, contra1)
+                    (MultiStep x_step_y3 y3_step_y2, contra2) =
+  let y3_eq_y = sym (step_deterministic x_step_y x_step_y3)
+      y_step_y2 = replace {P=\x => Multi Step x y2} y3_eq_y y3_step_y2
+  in normal_forms_unique (assert_smaller p (y_step_y1, contra1))
+                         (y_step_y2, contra2)
+
+Normalizing : (r : Relation t) -> Type
+Normalizing {t} r = (x : t) -> (y : t ** (Multi r x y, NormalForm r y))
+
+multistep_congr_1 : t1 -+>* t1' -> P t1 t2 -+>* P t1' t2
+multistep_congr_1 MultiRefl = MultiRefl
+multistep_congr_1 (MultiStep once next) =
+  MultiStep (ST_Plus1 once) (multistep_congr_1 next)
+
+multistep_congr_2 : Value t1 -> t2 -+>* t2' -> P t1 t2 -+>* P t1 t2'
+multistep_congr_2 _ MultiRefl = MultiRefl
+multistep_congr_2 v (MultiStep once next) =
+  MultiStep (ST_Plus2 v once) (multistep_congr_2 v next)
+
+step_normalizing : Normalizing Step
+step_normalizing (C n) =
+  (C n ** (MultiRefl, \(_ ** s) => case s of
+                        ST_PlusConstConst impossible
+                        ST_Plus1 _ impossible
+                        ST_Plus2 _ _ impossible))
+step_normalizing (P t1 t2) =
+  let (_ ** (s1, nf1)) = step_normalizing t1
+      (_ ** (s2, nf2)) = step_normalizing t2
+      v1@(V_Const n1) = nf_is_value nf1
+      V_Const n2 = nf_is_value nf2
+      steps = multi_trans (multistep_congr_1 {t2=t2} s1) $
+              multi_trans (multistep_congr_2 v1 s2) $
+              MultiStep ST_PlusConstConst MultiRefl
+  in (C (n1 + n2) ** (steps, \(_ ** s) => case s of
+                               ST_PlusConstConst impossible
+                               ST_Plus1 _ impossible
+                               ST_Plus2 _ _ impossible))
