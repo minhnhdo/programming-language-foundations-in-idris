@@ -71,9 +71,6 @@ strong_progress (P (P t1 t2) t3) = case strong_progress (P t1 t2) of
   Left _ impossible
   Right (t' ** s) => Right (P t' t3 ** ST_Plus1 s)
 
-NormalForm : (r : Relation t) -> (x : t) -> Type
-NormalForm r x = Not (x' ** r x x')
-
 value_is_nf : Value v -> NormalForm Step v
 value_is_nf (V_Const _) (_ ** _) impossible
 
