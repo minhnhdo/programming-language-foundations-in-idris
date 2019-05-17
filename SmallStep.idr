@@ -190,21 +190,10 @@ namespace Temp4
   step_deterministic_bool (ST_If4 s1) (ST_If4 s2) =
     rewrite step_deterministic_bool s1 s2 in Refl
 
-data Multi : {t : Type} -> (r : Relation t) -> Relation t where
-  MultiRefl : Multi r x x
-  MultiStep : r x y -> Multi r y z -> Multi r x z
-
 infix 4 -+>*
 
 (-+>*) : Relation Tm
 (-+>*) = Multi Step
-
-multi_R : {r : Relation t} -> r x y -> Multi r x y
-multi_R rxy = MultiStep rxy MultiRefl
-
-multi_trans : {r : Relation t} -> Multi r x y -> Multi r y z -> Multi r x z
-multi_trans MultiRefl ryz = ryz
-multi_trans (MultiStep once next) ryz = MultiStep once (multi_trans next ryz)
 
 test_multistep_1 : P (P (C 0) (C 3)) (P (C 2) (C 4)) -+>* C 9
 test_multistep_1 = MultiStep (ST_Plus1 ST_PlusConstConst) $

@@ -139,3 +139,14 @@ Relation p = p -> p -> Type
 
 Deterministic : (r : Relation p) -> Type
 Deterministic {p} r = {x, y1, y2 : p} -> r x y1 -> r x y2 -> y1 = y2
+
+data Multi : {t : Type} -> (r : Relation t) -> Relation t where
+  MultiRefl : Multi r x x
+  MultiStep : r x y -> Multi r y z -> Multi r x z
+
+multi_R : {r : Relation t} -> r x y -> Multi r x y
+multi_R rxy = MultiStep rxy MultiRefl
+
+multi_trans : {r : Relation t} -> Multi r x y -> Multi r y z -> Multi r x z
+multi_trans MultiRefl ryz = ryz
+multi_trans (MultiStep once next) ryz = MultiStep once (multi_trans next ryz)
