@@ -239,3 +239,27 @@ progress (T_IsZro ty) = case progress ty of
     NV_Zro => Right (Tru ** ST_IsZroZro)
     NV_Scc nv => Right (Fls ** ST_IsZroScc nv)
   Right (t' ** s) => Right (IsZro t' ** ST_IsZro s)
+
+preservation : t `HasType` ty -> t -+> t' -> t' `HasType` ty
+preservation T_Tru s = absurd s
+preservation T_Fls s = absurd s
+preservation (T_Test _ ty2 _) ST_TestTru = ty2
+preservation (T_Test _ _ ty3) ST_TestFls = ty3
+preservation (T_Test ty1 ty2 ty3) (ST_Test s) =
+  T_Test (preservation ty1 s) ty2 ty3
+preservation T_Zro s = absurd s
+preservation (T_Scc ty) (ST_Scc s) = T_Scc (preservation ty s)
+preservation (T_Prd ty) ST_PrdZro = ty
+preservation (T_Prd (T_Scc ty)) (ST_PrdScc _) = ty
+preservation (T_Prd ty) (ST_Prd s) = T_Prd (preservation ty s)
+preservation (T_IsZro _) ST_IsZroZro = T_Tru
+preservation (T_IsZro _) (ST_IsZroScc _) = T_Fls
+preservation (T_IsZro ty) (ST_IsZro s) = T_IsZro (preservation ty s)
+
+MultiStep : Relation Tm
+MultiStep = Multi Step
+
+infix 4 -+>*
+
+(-+>*) : Relation Tm
+(-+>*) = MultiStep
