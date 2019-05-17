@@ -263,3 +263,19 @@ infix 4 -+>*
 
 (-+>*) : Relation Tm
 (-+>*) = MultiStep
+
+soundness : t `HasType` ty -> t -+>* t' -> Not (Stuck t')
+soundness ht MultiRefl = case progress ht of
+  Left v => \(_, p) => p v
+  Right p => \(nf, _) => nf p
+soundness ht (MultiStep once next) = soundness (preservation ht once) next
+
+nvalue_hastype_nat : NValue t -> t `HasType` TyNat
+nvalue_hastype_nat NV_Zro = T_Zro
+nvalue_hastype_nat (NV_Scc v) = T_Scc (nvalue_hastype_nat v)
+
+subject_expansion : (  t : Tm ** t' : Tm ** ty : Ty
+                    ** (t -+> t', t' `HasType` ty, Not (t `HasType` ty)))
+subject_expansion = (  Test Tru Zro Tru ** Zro ** TyNat
+                    ** (ST_TestTru, T_Zro, \ty => case ty of
+                                             T_Test _ _ ty3 => absurd ty3))
