@@ -50,7 +50,7 @@ syntax [t] "/" [st] "-+>b" [t'] = BStep st t t'
 
 data CStep : (Com, State) -> (Com, State) -> Type where
   CS_AssStep : AStep st a a' -> CStep (i ::= a, st) (i ::= a', st)
-  CS_Ass : CStep (i ::= ANum n, st) (SKIP, t_update i a st)
+  CS_Ass : CStep (i ::= ANum n, st) (SKIP, t_update i n st)
   CS_SeqStep : CStep (c1, st) (c1', st') ->
                CStep ((do c1; c2), st) ((do c1'; c2), st')
   CS_SeqFinish : CStep ((do SKIP; c2), st) (c2, st)
