@@ -12,6 +12,9 @@ data Ty : Type where
   TyBool : Ty
   TyArrow : Ty -> Ty -> Ty
 
+Uninhabited (TyArrow ty _ = ty) where
+  uninhabited Refl impossible
+
 data Tm : Type where
   Var : Id -> Tm
   App : Tm -> Tm -> Tm
@@ -128,3 +131,99 @@ where forward : subst x s t = t' -> Substi s x t t'
                                    in rewrite backward s2
                                    in rewrite backward s3
                                    in Refl
+
+data Step : Tm -> Tm -> Type where
+  ST_AppAbs : Value v -> Step (App (Abs x ty t) v) (subst x v t)
+  ST_App1 : Step t1 t1' -> Step (App t1 t2) (App t1' t2)
+  ST_App2 : Value v1 -> Step t2 t2' -> Step (App v1 t2) (App v1 t2')
+  ST_TestTru : Step (Test Tru t1 t2) t1
+  ST_TestFls : Step (Test Fls t1 t2) t2
+  ST_Test : Step t1 t1' -> Step (Test t1 t2 t3) (Test t1' t2 t3)
+
+MultiStep : Tm -> Tm -> Type
+MultiStep = Multi Step
+
+infix 4 -+>*
+
+(-+>*) : Tm -> Tm -> Type
+(-+>*) = MultiStep
+
+step_example_1 : App Stlc.idBB Stlc.idB -+>* Stlc.idB
+step_example_1 = MultiStep (ST_AppAbs V_Abs) MultiRefl
+
+step_example_2 : App Stlc.idBB (App Stlc.idBB Stlc.idB) -+>* Stlc.idB
+step_example_2 = MultiStep (ST_App2 V_Abs (ST_AppAbs V_Abs))
+               $ MultiStep (ST_AppAbs V_Abs)
+               $ MultiRefl
+
+step_example_3 : App (App Stlc.idBB Stlc.notB) Tru -+>* Fls
+step_example_3 = MultiStep (ST_App1 (ST_AppAbs V_Abs))
+               $ MultiStep (ST_AppAbs V_Tru)
+               $ MultiStep ST_TestTru
+               $ MultiRefl
+
+step_example_4 : App Stlc.idBB (App Stlc.notB Tru) -+>* Fls
+step_example_4 = MultiStep (ST_App2 V_Abs (ST_AppAbs V_Tru))
+               $ MultiStep (ST_App2 V_Abs ST_TestTru)
+               $ MultiStep (ST_AppAbs V_Fls)
+               $ MultiRefl
+
+step_example_5 : App (App Stlc.idBBBB Stlc.idBB) Stlc.idB -+>* Stlc.idB
+step_example_5 = MultiStep (ST_App1 (ST_AppAbs V_Abs))
+               $ MultiStep (ST_AppAbs V_Abs)
+               $ MultiRefl
+
+Context : Type
+Context = PartialMap Ty
+
+data HasType : Context -> Tm -> Ty -> Type where
+  T_Var : gamma x = Just ty -> HasType gamma (Var x) ty
+  T_Abs : HasType (update x ty11 gamma) t12 ty12 ->
+          HasType gamma (Abs x ty11 t12) (TyArrow ty11 ty12)
+  T_App : HasType gamma t1 (TyArrow ty11 ty12) ->
+          HasType gamma t2 ty11 ->
+          HasType gamma (App t1 t2) ty12
+  T_Tru : HasType gamma Tru TyBool
+  T_Fls : HasType gamma Fls TyBool
+  T_Test : HasType gamma t1 TyBool ->
+           HasType gamma t2 ty ->
+           HasType gamma t3 ty ->
+           HasType gamma (Test t1 t2 t3) ty
+
+typing_example_1 : HasType Maps.empty
+                           (Abs x TyBool (Var x))
+                           (TyArrow TyBool TyBool)
+typing_example_1 {x} = T_Abs (T_Var (rewrite sym (beq_id_refl x) in Refl))
+
+typing_example_2 : HasType Maps.empty
+                           (Abs X TyBool
+                                (Abs Y (TyArrow TyBool TyBool)
+                                     (App (Var Y) (App (Var Y) (Var X)))))
+                           (TyArrow TyBool
+                                    (TyArrow (TyArrow TyBool TyBool)
+                                             TyBool))
+typing_example_2 =
+  T_Abs (T_Abs (T_App (T_Var Refl) (T_App (T_Var Refl) (T_Var Refl))))
+
+typing_example_3 : (  ty : Ty
+                   ** HasType Maps.empty
+                              (Abs X (TyArrow TyBool TyBool)
+                                   (Abs Y (TyArrow TyBool TyBool)
+                                        (Abs Z TyBool
+                                             (App (Var Y)
+                                                  (App (Var X) (Var Z))))))
+                              ty )
+typing_example_3 = ( TyArrow (TyArrow TyBool TyBool)
+                             (TyArrow (TyArrow TyBool TyBool)
+                                      (TyArrow TyBool TyBool))
+                   ** T_Abs
+                        (T_Abs (T_Abs (T_App (T_Var Refl)
+                                             (T_App (T_Var Refl)
+                                                    (T_Var Refl))))))
+
+typing_nonexample_3 : Not (  ty1 : Ty ** ty2 : Ty
+                          ** HasType Maps.empty
+                                     (Abs X ty1 (App (Var X) (Var X)))
+                                     ty2 )
+typing_nonexample_3 (_ ** _ ** T_Abs (T_App (T_Var prf1) (T_Var prf2))) =
+  absurd (justInjective (trans (sym prf1) prf2))
