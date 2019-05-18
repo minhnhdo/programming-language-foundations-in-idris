@@ -140,6 +140,11 @@ data Step : Tm -> Tm -> Type where
   ST_TestFls : Step (Test Fls t1 t2) t2
   ST_Test : Step t1 t1' -> Step (Test t1 t2 t3) (Test t1' t2 t3)
 
+infix 4 -+>
+
+(-+>) : Tm -> Tm -> Type
+(-+>) = Step
+
 MultiStep : Tm -> Tm -> Type
 MultiStep = Multi Step
 
