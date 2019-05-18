@@ -53,3 +53,68 @@ progress (T_Test {t2} {t3} ht1 ht2 ht3) = case progress ht1 of
     Right prf => rewrite prf
                  in Right (t3 ** ST_TestFls)
   Right (t1' ** s1) => Right (Test t1' t2 t3 ** ST_Test s1)
+
+data AppearsFreeIn : Id -> Tm -> Type where
+  AFI_Var : AppearsFreeIn x (Var x)
+  AFI_App1 : AppearsFreeIn x t1 -> AppearsFreeIn x (App t1 t2)
+  AFI_App2 : AppearsFreeIn x t2 -> AppearsFreeIn x (App t1 t2)
+  AFI_Abs : Not (y = x) -> AppearsFreeIn x t -> AppearsFreeIn x (Abs y ty t)
+  AFI_Test1 : AppearsFreeIn x t1 -> AppearsFreeIn x (Test t1 t2 t3)
+  AFI_Test2 : AppearsFreeIn x t2 -> AppearsFreeIn x (Test t1 t2 t3)
+  AFI_Test3 : AppearsFreeIn x t3 -> AppearsFreeIn x (Test t1 t2 t3)
+
+Closed : (t : Tm) -> Type
+Closed t = (x : Id) -> Not (AppearsFreeIn x t)
+
+free_in_context : AppearsFreeIn x t -> HasType gamma t ty ->
+                  (ty' : Ty ** gamma x = Just ty')
+free_in_context {ty} AFI_Var (T_Var prf) = (ty ** prf)
+free_in_context (AFI_App1 afi) (T_App ht1 _) = free_in_context afi ht1
+free_in_context (AFI_App2 afi) (T_App _ ht2) = free_in_context afi ht2
+free_in_context {x} {gamma} (AFI_Abs contra afi) (T_Abs {ty11} ht) =
+  let (ty' ** prf) = free_in_context afi ht
+  in (ty' ** replace {P=\r => (if r then Just ty11 else gamma x) = Just ty'}
+                     (snd beq_id_false_iff contra)
+                     prf)
+free_in_context (AFI_Test1 afi) (T_Test ht1 _ _) = free_in_context afi ht1
+free_in_context (AFI_Test2 afi) (T_Test _ ht2 _) = free_in_context afi ht2
+free_in_context (AFI_Test3 afi) (T_Test _ _ ht3) = free_in_context afi ht3
+
+typeable_empty__closed : HasType Maps.empty t ty -> Closed t
+typeable_empty__closed (T_Var prf) = absurd prf
+typeable_empty__closed (T_Abs {ty11} ht) = \x, afi => case afi of
+  AFI_Abs contra afi => let (ty' ** prf) = free_in_context afi ht
+                        in uninhabited (replace {P=\r => (if r
+                                                             then Just ty11
+                                                             else Nothing)
+                                                         = Just ty'}
+                                                (snd beq_id_false_iff contra)
+                                                prf)
+typeable_empty__closed (T_App ht1 ht2) = \_, afi => case afi of
+  AFI_App1 afi => let (_ ** prf) = free_in_context afi ht1
+                  in uninhabited prf
+  AFI_App2 afi => let (_ ** prf) = free_in_context afi ht2
+                  in uninhabited prf
+typeable_empty__closed T_Tru = \_, afi => case afi of
+  AFI_Var impossible
+  (AFI_App1 _) impossible
+  (AFI_App2 _) impossible
+  (AFI_Abs _ _) impossible
+  (AFI_Test1 _) impossible
+  (AFI_Test2 _) impossible
+  (AFI_Test3 _) impossible
+typeable_empty__closed T_Fls = \_, afi => case afi of
+  AFI_Var impossible
+  (AFI_App1 _) impossible
+  (AFI_App2 _) impossible
+  (AFI_Abs _ _) impossible
+  (AFI_Test1 _) impossible
+  (AFI_Test2 _) impossible
+  (AFI_Test3 _) impossible
+typeable_empty__closed (T_Test ht1 ht2 ht3) = \_, afi => case afi of
+  AFI_Test1 afi => let (_ ** prf) = free_in_context afi ht1
+                   in uninhabited prf
+  AFI_Test2 afi => let (_ ** prf) = free_in_context afi ht2
+                   in uninhabited prf
+  AFI_Test3 afi => let (_ ** prf) = free_in_context afi ht3
+                   in uninhabited prf
