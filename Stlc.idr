@@ -140,6 +140,30 @@ data Step : Tm -> Tm -> Type where
   ST_TestFls : Step (Test Fls t1 t2) t2
   ST_Test : Step t1 t1' -> Step (Test t1 t2 t3) (Test t1' t2 t3)
 
+Uninhabited (Step Tru _) where
+  uninhabited (ST_AppAbs _) impossible
+  uninhabited (ST_App1 _) impossible
+  uninhabited (ST_App2 _ _) impossible
+  uninhabited ST_TestTru impossible
+  uninhabited ST_TestFls impossible
+  uninhabited (ST_Test _) impossible
+
+Uninhabited (Step Fls _) where
+  uninhabited (ST_AppAbs _) impossible
+  uninhabited (ST_App1 _) impossible
+  uninhabited (ST_App2 _ _) impossible
+  uninhabited ST_TestTru impossible
+  uninhabited ST_TestFls impossible
+  uninhabited (ST_Test _) impossible
+
+Uninhabited (Step (Abs _ _ _) _) where
+  uninhabited (ST_AppAbs _) impossible
+  uninhabited (ST_App1 _) impossible
+  uninhabited (ST_App2 _ _) impossible
+  uninhabited ST_TestTru impossible
+  uninhabited ST_TestFls impossible
+  uninhabited (ST_Test _) impossible
+
 infix 4 -+>
 
 (-+>) : Tm -> Tm -> Type

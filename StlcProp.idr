@@ -1,5 +1,7 @@
 module StlcProp
 
+import Expr
+import Logic
 import Maps
 import Stlc
 
@@ -205,3 +207,40 @@ substitution_preserves_typing (T_Test ht1 ht2 ht3) htv =
   T_Test (substitution_preserves_typing ht1 htv)
          (substitution_preserves_typing ht2 htv)
          (substitution_preserves_typing ht3 htv)
+
+preservation : HasType Maps.empty t ty -> t -+> t' -> HasType Maps.empty t' ty
+preservation (T_Var prf) _ = absurd prf
+preservation (T_Abs ht) s = absurd s
+preservation (T_App (T_Abs ht1) ht2) (ST_AppAbs v) =
+  substitution_preserves_typing ht1 ht2
+preservation (T_App ht1 ht2) (ST_App1 s1) = T_App (preservation ht1 s1) ht2
+preservation (T_App ht1 ht2) (ST_App2 v1 s2) = T_App ht1 (preservation ht2 s2)
+preservation T_Tru s = absurd s
+preservation T_Fls s = absurd s
+preservation (T_Test _ ht2 _) ST_TestTru = ht2
+preservation (T_Test _ _ ht3) ST_TestFls = ht3
+preservation (T_Test ht1 ht2 ht3) (ST_Test s) =
+  T_Test (preservation ht1 s) ht2 ht3
+
+subject_expansion : (  t : Tm ** t' : Tm ** ty : Ty
+                    ** ( t -+> t'
+                       , HasType Maps.empty t' ty
+                       , Not (HasType Maps.empty t ty) ))
+subject_expansion = (  App (Abs X (TyArrow TyBool TyBool) (Var X)) Tru
+                    ** subst X Tru (Var X)
+                    ** TyBool
+                    ** ( ST_AppAbs V_Tru
+                       , T_Tru
+                       , \ht => case ht of
+                           T_App (T_Abs (T_Var prf)) _ =>
+                             uninhabited (justInjective prf) ))
+
+Stuck : (t : Tm) -> Type
+Stuck t = (NormalForm Step t, Not (Value t))
+
+soundness : HasType Maps.empty t ty -> t -+>* t' -> Not (Stuck t')
+soundness ht MultiRefl (nf, not_value) = case progress ht of
+  Left v => not_value v
+  Right p => nf p
+soundness ht (MultiStep once next) (nf, not_value) =
+  soundness (preservation ht once) next (nf, not_value)
