@@ -118,3 +118,34 @@ typeable_empty__closed (T_Test ht1 ht2 ht3) = \_, afi => case afi of
                    in uninhabited prf
   AFI_Test3 afi => let (_ ** prf) = free_in_context afi ht3
                    in uninhabited prf
+
+context_invariance : HasType gamma t ty ->
+                     ((x : Id) -> AppearsFreeIn x t -> gamma x = gamma' x) ->
+                     HasType gamma' t ty
+context_invariance (T_Var {x} prf) f = T_Var (rewrite sym (f x AFI_Var) in prf)
+context_invariance {gamma} {gamma'} (T_Abs {x=y} {ty11} {t12} ht) f =
+  T_Abs (context_invariance ht f')
+where f' : (z : Id) -> AppearsFreeIn z t12 ->
+           (update y ty11 gamma) z = (update y ty11 gamma') z
+      f' z afi with (decEq y z)
+        f' z afi | Yes prf = rewrite snd beq_id_true_iff prf in Refl
+        f' z afi | No contra = rewrite snd beq_id_false_iff contra
+                               in f z (AFI_Abs contra afi)
+context_invariance {gamma} {gamma'} (T_App {t1} {t2} ht1 ht2) f =
+  T_App (context_invariance ht1 f1) (context_invariance ht2 f2)
+where f1 : (y : Id) -> AppearsFreeIn y t1 -> gamma y = gamma' y
+      f1 y afi = f y (AFI_App1 afi)
+      f2 : (y : Id) -> AppearsFreeIn y t2 -> gamma y = gamma' y
+      f2 y afi = f y (AFI_App2 afi)
+context_invariance T_Tru _ = T_Tru
+context_invariance T_Fls _ = T_Fls
+context_invariance {gamma} {gamma'} (T_Test {t1} {t2} {t3} ht1 ht2 ht3) f =
+  T_Test (context_invariance ht1 f1)
+         (context_invariance ht2 f2)
+         (context_invariance ht3 f3)
+where f1 : (y : Id) -> AppearsFreeIn y t1 -> gamma y = gamma' y
+      f1 y afi = f y (AFI_Test1 afi)
+      f2 : (y : Id) -> AppearsFreeIn y t2 -> gamma y = gamma' y
+      f2 y afi = f y (AFI_Test2 afi)
+      f3 : (y : Id) -> AppearsFreeIn y t3 -> gamma y = gamma' y
+      f3 y afi = f y (AFI_Test3 afi)
