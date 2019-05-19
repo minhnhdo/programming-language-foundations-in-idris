@@ -149,3 +149,59 @@ where f1 : (y : Id) -> AppearsFreeIn y t1 -> gamma y = gamma' y
       f2 y afi = f y (AFI_Test2 afi)
       f3 : (y : Id) -> AppearsFreeIn y t3 -> gamma y = gamma' y
       f3 y afi = f y (AFI_Test3 afi)
+
+substitution_preserves_typing : HasType (Maps.update x ty2 gamma) t ty ->
+                                HasType Maps.empty v ty2 ->
+                                HasType gamma (subst x v t) ty
+substitution_preserves_typing {x} {ty2} {ty} {gamma} {t = Var y} (T_Var prf) htv
+  with (decEq x y)
+  substitution_preserves_typing {x} {ty2} {ty} {gamma} {t = Var y}
+                                (T_Var prf) htv | Yes prf' =
+    let ty2_eq_ty = justInjective
+                      (replace
+                        {P=\r => (if r then Just ty2 else gamma y) = Just ty}
+                        (snd beq_id_true_iff prf')
+                        prf)
+    in rewrite sym ty2_eq_ty
+    in context_invariance htv (\z, afi =>
+                                absurd (typeable_empty__closed htv z afi))
+  substitution_preserves_typing {x} {ty2} {ty} {gamma} {t = Var y}
+                                (T_Var prf) htv | No contra =
+    T_Var (replace {P=\r => (if r then Just ty2 else gamma y) = Just ty}
+                   (snd beq_id_false_iff contra) prf)
+substitution_preserves_typing (T_App ht1 ht2) htv =
+  T_App (substitution_preserves_typing ht1 htv)
+        (substitution_preserves_typing ht2 htv)
+substitution_preserves_typing {x} {ty2} {gamma} {t = Abs y ty t}
+                              (T_Abs {ty12} ht) htv with (decEq x y)
+    substitution_preserves_typing {x} {ty2} {gamma} {t = Abs y ty t}
+                                  (T_Abs {ty12} ht) htv | Yes prf =
+      let ht' = replace
+                  {P=\r => HasType r t ty12}
+                  (update_shadow {x=y} {v2=ty} {v1=ty2} {m=gamma})
+                  (replace
+                    {P=\r => HasType (\y1 => if beq_id y y1
+                                                then Just ty
+                                                else if beq_id r y1
+                                                     then Just ty2
+                                                     else gamma y1)
+                                     t
+                                     ty12}
+                    prf
+                    ht)
+      in T_Abs ht'
+    substitution_preserves_typing {x} {ty2} {gamma} {t = Abs y ty t}
+                                  (T_Abs {ty12} ht) htv | No contra =
+      T_Abs (substitution_preserves_typing
+              (context_invariance
+                ht
+                (\z, afi =>
+                  cong {f=\g => g z}
+                       (update_permute {v1=ty} {v2=ty2} {m=gamma} contra)))
+              htv)
+substitution_preserves_typing T_Tru _ = T_Tru
+substitution_preserves_typing T_Fls _ = T_Fls
+substitution_preserves_typing (T_Test ht1 ht2 ht3) htv =
+  T_Test (substitution_preserves_typing ht1 htv)
+         (substitution_preserves_typing ht2 htv)
+         (substitution_preserves_typing ht3 htv)
