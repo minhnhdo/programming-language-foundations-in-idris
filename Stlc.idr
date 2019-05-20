@@ -94,15 +94,15 @@ data Step : Tm -> Tm -> Type where
   ST_App2 : Value v1 -> Step t2 t2' -> Step (App v1 t2) (App v1 t2')
   ST_SccConst : Value (Const n) -> Step (Scc (Const n)) (Const (S n))
   ST_Scc : Step t t' -> Step (Scc t) (Scc t')
-  ST_PrdZro : Step (Scc (Const Z)) (Const Z)
-  ST_PrdScc : Step (Scc (Const (S n))) (Const n)
+  ST_PrdZro : Step (Prd (Const Z)) (Const Z)
+  ST_PrdScc : Step (Prd (Const (S n))) (Const n)
   ST_Prd : Step t t' -> Step (Prd t) (Prd t')
   ST_MultConstConst : Step (Mult (Const n) (Const m)) (Const (n * m))
   ST_Mult1 : Step t1 t1' -> Step (Mult t1 t2) (Mult t1' t2)
   ST_Mult2 : Step t2 t2' -> Step (Mult t1 t2) (Mult t1 t2')
   ST_IsZroZro : Step (IsZro (Const Z)) Tru
   ST_IsZroScc : Step (IsZro (Const (S n))) Fls
-  St_IsZro : Step t t' -> Step (IsZro t) (IsZro t')
+  ST_IsZro : Step t t' -> Step (IsZro t) (IsZro t')
   ST_TestTru : Step (Test Tru t1 t2) t1
   ST_TestFls : Step (Test Fls t1 t2) t2
   ST_Test : Step t1 t1' -> Step (Test t1 t2 t3) (Test t1' t2 t3)
