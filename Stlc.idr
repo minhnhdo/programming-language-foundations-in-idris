@@ -145,7 +145,11 @@ data Step : Tm -> Tm -> Type where
   ST_TestFls : Step (Test Fls t1 t2) t2
   ST_Test : Step t1 t1' -> Step (Test t1 t2 t3) (Test t1' t2 t3)
   -- fix
+  ST_FixAbs : Step (Fix (Abs x ty t)) (subst x (Fix (Abs x ty t)) t)
+  ST_Fix : Step t t' -> Step (Fix t) (Fix t')
   -- let
+  ST_LetValue : Value v1 -> Step (Let x v1 t2) (subst x v1 t2)
+  ST_Let : Step t1 t1' -> Step (Let x t1 t2) (Let x t1' t2)
   -- lists
   ST_Cons1 : Step t1 t1' -> Step (Cons t1 t2) (Cons t1' t2)
   ST_Cons2 : Value v1 -> Step t2 t2' -> Step (Cons v1 t2) (Cons v1 t2')
@@ -167,6 +171,12 @@ data Step : Tm -> Tm -> Type where
   ST_IsZroScc : Step (IsZro (Const (S n))) Fls
   ST_IsZro : Step t t' -> Step (IsZro t) (IsZro t')
   -- pairs
+  ST_Pair1 : Step t1 t1' -> Step (Pair t1 t2) (Pair t1' t2)
+  ST_Pair2 : Value v1 -> Step t2 t2' -> Step (Pair v1 t2) (Pair v1 t2')
+  ST_FstPair : Value (Pair v1 v2) -> Step (Fst (Pair v1 v2)) v1
+  ST_Fst : Step t t' -> Step (Fst t) (Fst t')
+  ST_SndPair : Value (Pair v1 v2) -> Step (Snd (Pair v1 v2)) v2
+  ST_Snd : Step t t' -> Step (Snd t) (Snd t')
   -- sums
   ST_InL : Step t t' -> Step (InL ty t) (InL ty t')
   ST_InR : Step t t' -> Step (InR ty t) (InR ty t')
@@ -175,28 +185,13 @@ data Step : Tm -> Tm -> Type where
   ST_SCaseInR : Value v -> Step (SCase (InR ty v) y t1 z t2) (subst z v t2)
 
 Uninhabited (Step Tru _) where
-  uninhabited (ST_AppAbs _) impossible
-  uninhabited (ST_App1 _) impossible
-  uninhabited (ST_App2 _ _) impossible
   uninhabited ST_TestTru impossible
-  uninhabited ST_TestFls impossible
-  uninhabited (ST_Test _) impossible
 
 Uninhabited (Step Fls _) where
-  uninhabited (ST_AppAbs _) impossible
-  uninhabited (ST_App1 _) impossible
-  uninhabited (ST_App2 _ _) impossible
-  uninhabited ST_TestTru impossible
   uninhabited ST_TestFls impossible
-  uninhabited (ST_Test _) impossible
 
 Uninhabited (Step (Abs _ _ _) _) where
   uninhabited (ST_AppAbs _) impossible
-  uninhabited (ST_App1 _) impossible
-  uninhabited (ST_App2 _ _) impossible
-  uninhabited ST_TestTru impossible
-  uninhabited ST_TestFls impossible
-  uninhabited (ST_Test _) impossible
 
 infix 4 -+>
 
@@ -215,21 +210,51 @@ Context : Type
 Context = PartialMap Ty
 
 data HasType : Context -> Tm -> Ty -> Type where
+  -- pure STLC
   T_Var : gamma x = Just ty -> HasType gamma (Var x) ty
   T_Abs : HasType (update x ty11 gamma) t12 ty12 ->
           HasType gamma (Abs x ty11 t12) (TyArrow ty11 ty12)
   T_App : HasType gamma t1 (TyArrow ty11 ty12) ->
           HasType gamma t2 ty11 ->
           HasType gamma (App t1 t2) ty12
-  T_Const : HasType gamma (Const n) TyNat
-  T_Scc : HasType gamma t TyNat -> HasType gamma (Scc t) TyNat
-  T_Prd : HasType gamma t TyNat -> HasType gamma (Prd t) TyNat
-  T_Mult : HasType gamma t1 TyNat -> HasType gamma t2 TyNat ->
-           HasType gamma (Mult t1 t2) TyNat
-  T_IsZro : HasType gamma t TyNat -> HasType gamma (IsZro t) TyBool
+  -- booleans
   T_Tru : HasType gamma Tru TyBool
   T_Fls : HasType gamma Fls TyBool
   T_Test : HasType gamma t1 TyBool ->
            HasType gamma t2 ty ->
            HasType gamma t3 ty ->
            HasType gamma (Test t1 t2 t3) ty
+  -- fix
+  T_Fix : HasType gamma t (TyArrow ty ty) -> HasType gamma (Fix t) ty
+  -- let
+  T_Let : HasType gamma t1 ty1 -> HasType (update x ty1 gamma) t2 ty2 ->
+          HasType gamma (Let x t1 t2) ty2
+  -- lists
+  T_Nil : HasType gamma (Nil ty) (TyList ty)
+  T_Cons : HasType gamma th ty -> HasType gamma tt (TyList ty) ->
+           HasType gamma (Cons th tt) (TyList ty)
+  T_LCase : HasType gamma t (TyList ty1) ->
+            HasType gamma t2 ty ->
+            HasType (update y ty1 (update z (TyList ty1) gamma)) t3 ty ->
+            HasType gamma (LCase t t2 y z t3) ty
+  -- numbers
+  T_Const : HasType gamma (Const n) TyNat
+  T_Scc : HasType gamma t TyNat -> HasType gamma (Scc t) TyNat
+  T_Prd : HasType gamma t TyNat -> HasType gamma (Prd t) TyNat
+  T_Mult : HasType gamma t1 TyNat -> HasType gamma t2 TyNat ->
+           HasType gamma (Mult t1 t2) TyNat
+  T_IsZro : HasType gamma t TyNat -> HasType gamma (IsZro t) TyBool
+  -- pairs
+  T_Pair : HasType gamma t1 ty1 -> HasType gamma t2 ty2 ->
+           HasType gamma (Pair t1 t2) (TyProd ty1 ty2)
+  T_Fst : HasType gamma t (TyProd ty1 ty2) -> HasType gamma (Fst t) ty1
+  T_Snd : HasType gamma t (TyProd ty1 ty2) -> HasType gamma (Snd t) ty2
+  -- sums
+  T_InL : HasType gamma t1 ty1 -> HasType gamma (InL ty1 t1) (TySum ty1 ty2)
+  T_InR : HasType gamma t2 ty2 -> HasType gamma (InR ty2 t2) (TySum ty1 ty2)
+  T_SCase : HasType gamma t (TySum ty1 ty2) ->
+            HasType (update x ty1 gamma) t1 ty ->
+            HasType (update y ty2 gamma) t2 ty ->
+            HasType gamma (SCase t x t1 y t2) ty
+  -- unit
+  T_Unit : HasType gamma Unit TyUnit
