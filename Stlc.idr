@@ -11,29 +11,60 @@ import Maps
 data Ty : Type where
   TyArrow : Ty -> Ty -> Ty
   TyBool : Ty
+  TyList : Ty -> Ty
   TyNat : Ty
+  TyProd : Ty -> Ty -> Ty
+  TySum : Ty -> Ty -> Ty
+  TyUnit : Ty
 
 Uninhabited (TyArrow ty _ = ty) where
   uninhabited Refl impossible
 
 data Tm : Type where
+  -- pure STLC
   Var : Id -> Tm
   App : Tm -> Tm -> Tm
   Abs : Id -> Ty -> Tm -> Tm
+  -- booleans
+  Tru : Tm
+  Fls : Tm
+  Test : Tm -> Tm -> Tm -> Tm
+  -- fix
+  Fix : Tm -> Tm
+  -- let
+  Let : Id -> Tm -> Tm -> Tm
+  -- lists
+  Nil : Ty -> Tm
+  Cons : Tm -> Tm -> Tm
+  LCase : Tm -> Tm -> Id -> Id -> Tm -> Tm
+  -- numbers
   Const : Nat -> Tm
   Scc : Tm -> Tm
   Prd : Tm -> Tm
   Mult : Tm -> Tm -> Tm
   IsZro : Tm -> Tm
-  Tru : Tm
-  Fls : Tm
-  Test : Tm -> Tm -> Tm -> Tm
+  -- pairs
+  Pair : Tm -> Tm -> Tm
+  Fst : Tm -> Tm
+  Snd : Tm -> Tm
+  -- sums
+  InL : Ty -> Tm -> Tm
+  InR : Ty -> Tm -> Tm
+  SCase : Tm -> Id -> Tm -> Id -> Tm -> Tm
+  -- units
+  Unit : Tm
 
 data Value : Tm -> Type where
   V_Abs : Value (Abs x ty t)
   V_Const : Value (Const n)
   V_Tru : Value Tru
   V_Fls : Value Fls
+  V_Nil : Value (Nil ty)
+  V_Cons : Value vh -> Value vt -> Value (Cons vh vt)
+  V_InL : Value t -> Value (InL ty t)
+  V_InR : Value t -> Value (InR ty t)
+  V_Unit : Value Unit
+  V_Pair : Value t1 -> Value t2 -> Value (Pair t1 t2)
 
 subst : (x : Id) -> (s : Tm) -> (t : Tm) -> Tm
 subst x s (Var y) with (decEq x y)
@@ -51,6 +82,37 @@ subst x s (IsZro t) = IsZro (subst x s t)
 subst x s Tru = Tru
 subst x s Fls = Fls
 subst x s (Test t1 t2 t3) = Test (subst x s t1) (subst x s t2) (subst x s t3)
+subst x s (Fix t) = Fix (subst x s t)
+subst x s (Let y t1 t2) with (decEq x y)
+  subst x s (Let y t1 t2) | Yes _ = Let y (subst x s t1) t2
+  subst x s (Let y t1 t2) | No _ = Let y (subst x s t1) (subst x s t2)
+subst x s (Nil ty) = Nil ty
+subst x s (Cons t1 t2) = Cons (subst x s t1) (subst x s t2)
+subst x s (LCase t t1 y z t2) with (decEq x y)
+  subst x s (LCase t t1 y z t2) | Yes _ =
+    LCase (subst x s t) (subst x s t1) y z t2
+  subst x s (LCase t t1 y z t2) | No contra with (decEq x z)
+    subst x s (LCase t t1 y z t2) | No _ | Yes _ =
+      LCase (subst x s t) (subst x s t1) y z t2
+    subst x s (LCase t t1 y z t2) | No _ | No _ =
+      LCase (subst x s t) (subst x s t1) y z (subst x s t2)
+subst x s (Pair t1 t2) = Pair (subst x s t1) (subst x s t2)
+subst x s (Fst t) = Fst (subst x s t)
+subst x s (Snd t) = Snd (subst x s t)
+subst x s (InL ty t) = InL ty (subst x s t)
+subst x s (InR ty t) = InR ty (subst x s t)
+subst x s (SCase t y t1 z t2) with (decEq x y)
+  subst x s (SCase t y t1 z t2) | Yes _ with (decEq x z)
+    subst x s (SCase t y t1 z t2) | Yes _ | Yes _ =
+      SCase (subst x s t) y t1 z t2
+    subst x s (SCase t y t1 z t2) | Yes _ | No _ =
+      SCase (subst x s t) y t1 z (subst x s t2)
+  subst x s (SCase t y t1 z t2) | No _ with (decEq x z)
+    subst x s (SCase t y t1 z t2) | No _ | Yes _ =
+      SCase (subst x s t) y (subst x s t1) z t2
+    subst x s (SCase t y t1 z t2) | No _ | No _ =
+      SCase (subst x s t) y (subst x s t1) z (subst x s t2)
+subst x s Unit = Unit
 
 syntax "<" [x] ":=" [s] ">" [t] = subst x s t
 
@@ -74,9 +136,25 @@ data Substi : (s : Tm) -> (x : Id) -> Tm -> Tm -> Type where
            Substi s x (Test t1 t2 t3) (Test t1' t2' t3')
 
 data Step : Tm -> Tm -> Type where
+  -- pure STLC
   ST_AppAbs : Value v -> Step (App (Abs x ty t) v) (subst x v t)
   ST_App1 : Step t1 t1' -> Step (App t1 t2) (App t1' t2)
   ST_App2 : Value v1 -> Step t2 t2' -> Step (App v1 t2) (App v1 t2')
+  -- booleans
+  ST_TestTru : Step (Test Tru t1 t2) t1
+  ST_TestFls : Step (Test Fls t1 t2) t2
+  ST_Test : Step t1 t1' -> Step (Test t1 t2 t3) (Test t1' t2 t3)
+  -- fix
+  -- let
+  -- lists
+  ST_Cons1 : Step t1 t1' -> Step (Cons t1 t2) (Cons t1' t2)
+  ST_Cons2 : Value v1 -> Step t2 t2' -> Step (Cons v1 t2) (Cons v1 t2')
+  ST_LCase : Step t t' -> Step (LCase t t1 y z t2) (LCase t' t1 y z t2)
+  ST_LCaseNil : Step (LCase (Nil ty) t1 y z t2) t1
+  ST_LCaseCons : Value vh -> Value vt ->
+                 Step (LCase (Cons vh vt) t1 y z t2)
+                      (subst z vt (subst y vh t2))
+  -- numbers
   ST_SccConst : Value (Const n) -> Step (Scc (Const n)) (Const (S n))
   ST_Scc : Step t t' -> Step (Scc t) (Scc t')
   ST_PrdZro : Step (Prd (Const Z)) (Const Z)
@@ -88,9 +166,13 @@ data Step : Tm -> Tm -> Type where
   ST_IsZroZro : Step (IsZro (Const Z)) Tru
   ST_IsZroScc : Step (IsZro (Const (S n))) Fls
   ST_IsZro : Step t t' -> Step (IsZro t) (IsZro t')
-  ST_TestTru : Step (Test Tru t1 t2) t1
-  ST_TestFls : Step (Test Fls t1 t2) t2
-  ST_Test : Step t1 t1' -> Step (Test t1 t2 t3) (Test t1' t2 t3)
+  -- pairs
+  -- sums
+  ST_InL : Step t t' -> Step (InL ty t) (InL ty t')
+  ST_InR : Step t t' -> Step (InR ty t) (InR ty t')
+  ST_SCase : Step t t' -> Step (SCase t y t1 z t2) (SCase t' y t1 z t2)
+  ST_SCaseInL : Value v -> Step (SCase (InL ty v) y t1 z t2) (subst y v t1)
+  ST_SCaseInR : Value v -> Step (SCase (InR ty v) y t1 z t2) (subst z v t2)
 
 Uninhabited (Step Tru _) where
   uninhabited (ST_AppAbs _) impossible
