@@ -498,3 +498,86 @@ eotest = Let evenOdd
                   (Let odd (Snd (Var evenOdd))
                        (Pair (App (Var even) (Const 3))
                              (App (Var even) (Const 4)))))
+
+eotest_typechecks : HasType Maps.empty StlcExamples.eotest (TyProd TyNat TyNat)
+eotest_typechecks = T_Let (T_Fix
+                            (T_Abs
+                              (T_Pair
+                                (T_Abs
+                                  (T_Test (T_IsZro (T_Var Refl))
+                                          T_Const
+                                          (T_App (T_Snd (T_Var Refl))
+                                                 (T_Prd (T_Var Refl)))))
+                                (T_Abs
+                                  (T_Test (T_IsZro (T_Var Refl))
+                                          T_Const
+                                          (T_App (T_Fst (T_Var Refl))
+                                                 (T_Prd (T_Var Refl))))))))
+                          (T_Let (T_Fst (T_Var Refl))
+                                 (T_Let (T_Snd (T_Var Refl))
+                                        (T_Pair (T_App (T_Var Refl) T_Const)
+                                                (T_App (T_Var Refl) T_Const))))
+
+eotest_reduces : StlcExamples.eotest -+>* Pair (Const 0) (Const 1)
+eotest_reduces = MultiStep (ST_Let ST_FixAbs)
+               $ MultiStep (ST_LetValue (V_Pair V_Abs V_Abs))
+               $ MultiStep (ST_Let (ST_FstPair (V_Pair V_Abs V_Abs)))
+               $ MultiStep (ST_LetValue V_Abs)
+               $ MultiStep (ST_Let (ST_SndPair (V_Pair V_Abs V_Abs)))
+               $ MultiStep (ST_LetValue V_Abs)
+               $ MultiStep (ST_Pair1 (ST_AppAbs V_Const))
+               $ MultiStep (ST_Pair1 (ST_Test ST_IsZroScc))
+               $ MultiStep (ST_Pair1 ST_TestFls)
+               $ MultiStep (ST_Pair1 (ST_App1 (ST_Snd ST_FixAbs)))
+               $ MultiStep (ST_Pair1
+                             (ST_App1 (ST_SndPair (V_Pair V_Abs V_Abs))))
+               $ MultiStep (ST_Pair1 (ST_App2 V_Abs ST_PrdScc))
+               $ MultiStep (ST_Pair1 (ST_AppAbs V_Const))
+               $ MultiStep (ST_Pair1 (ST_Test ST_IsZroScc))
+               $ MultiStep (ST_Pair1 ST_TestFls)
+               $ MultiStep (ST_Pair1 (ST_App1 (ST_Fst ST_FixAbs)))
+               $ MultiStep (ST_Pair1
+                             (ST_App1 (ST_FstPair (V_Pair V_Abs V_Abs))))
+               $ MultiStep (ST_Pair1 (ST_App2 V_Abs ST_PrdScc))
+               $ MultiStep (ST_Pair1 (ST_AppAbs V_Const))
+               $ MultiStep (ST_Pair1 (ST_Test ST_IsZroScc))
+               $ MultiStep (ST_Pair1 ST_TestFls)
+               $ MultiStep (ST_Pair1 (ST_App1 (ST_Snd ST_FixAbs)))
+               $ MultiStep (ST_Pair1
+                             (ST_App1 (ST_SndPair (V_Pair V_Abs V_Abs))))
+               $ MultiStep (ST_Pair1 (ST_App2 V_Abs ST_PrdScc))
+               $ MultiStep (ST_Pair1 (ST_AppAbs V_Const))
+               $ MultiStep (ST_Pair1 (ST_Test ST_IsZroZro))
+               $ MultiStep (ST_Pair1 ST_TestTru)
+               $ MultiStep (ST_Pair2 V_Const (ST_AppAbs V_Const))
+               $ MultiStep (ST_Pair2 V_Const (ST_Test ST_IsZroScc))
+               $ MultiStep (ST_Pair2 V_Const ST_TestFls)
+               $ MultiStep (ST_Pair2 V_Const (ST_App1 (ST_Snd ST_FixAbs)))
+               $ MultiStep (ST_Pair2 V_Const
+                             (ST_App1 (ST_SndPair (V_Pair V_Abs V_Abs))))
+               $ MultiStep (ST_Pair2 V_Const (ST_App2 V_Abs ST_PrdScc))
+               $ MultiStep (ST_Pair2 V_Const (ST_AppAbs V_Const))
+               $ MultiStep (ST_Pair2 V_Const (ST_Test ST_IsZroScc))
+               $ MultiStep (ST_Pair2 V_Const ST_TestFls)
+               $ MultiStep (ST_Pair2 V_Const (ST_App1 (ST_Fst ST_FixAbs)))
+               $ MultiStep (ST_Pair2 V_Const
+                             (ST_App1 (ST_FstPair (V_Pair V_Abs V_Abs))))
+               $ MultiStep (ST_Pair2 V_Const (ST_App2 V_Abs ST_PrdScc))
+               $ MultiStep (ST_Pair2 V_Const (ST_AppAbs V_Const))
+               $ MultiStep (ST_Pair2 V_Const (ST_Test ST_IsZroScc))
+               $ MultiStep (ST_Pair2 V_Const ST_TestFls)
+               $ MultiStep (ST_Pair2 V_Const (ST_App1 (ST_Snd ST_FixAbs)))
+               $ MultiStep (ST_Pair2 V_Const
+                             (ST_App1 (ST_SndPair (V_Pair V_Abs V_Abs))))
+               $ MultiStep (ST_Pair2 V_Const (ST_App2 V_Abs ST_PrdScc))
+               $ MultiStep (ST_Pair2 V_Const (ST_AppAbs V_Const))
+               $ MultiStep (ST_Pair2 V_Const (ST_Test ST_IsZroScc))
+               $ MultiStep (ST_Pair2 V_Const ST_TestFls)
+               $ MultiStep (ST_Pair2 V_Const (ST_App1 (ST_Fst ST_FixAbs)))
+               $ MultiStep (ST_Pair2 V_Const
+                             (ST_App1 (ST_FstPair (V_Pair V_Abs V_Abs))))
+               $ MultiStep (ST_Pair2 V_Const (ST_App2 V_Abs ST_PrdScc))
+               $ MultiStep (ST_Pair2 V_Const (ST_AppAbs V_Const))
+               $ MultiStep (ST_Pair2 V_Const (ST_Test ST_IsZroZro))
+               $ MultiStep (ST_Pair2 V_Const ST_TestTru)
+               $ MultiRefl
