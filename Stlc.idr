@@ -117,6 +117,7 @@ subst x s Unit = Unit
 syntax "<" [x] ":=" [s] ">" [t] = subst x s t
 
 data Substi : (s : Tm) -> (x : Id) -> Tm -> Tm -> Type where
+  -- pure STLC
   S_Var1 : Substi s x (Var x) s
   S_Var2 : Not (x = y) -> Substi s x (Var y) (Var y)
   S_App : Substi s x t1 t1' -> Substi s x t2 t2' ->
@@ -124,16 +125,56 @@ data Substi : (s : Tm) -> (x : Id) -> Tm -> Tm -> Type where
   S_Abs1 : Substi s x (Abs x ty t) (Abs x ty t)
   S_Abs2 : Not (x = y) -> Substi s x t t' ->
            Substi s x (Abs y ty t) (Abs y ty t')
+  -- booleans
+  S_Tru : Substi s x Tru Tru
+  S_Fls : Substi s x Fls Fls
+  S_Test : Substi s x t1 t1' -> Substi s x t2 t2' -> Substi s x t3 t3' ->
+           Substi s x (Test t1 t2 t3) (Test t1' t2' t3')
+  -- fix
+  S_Fix : Substi s x t t' -> Substi s x (Fix t) (Fix t')
+  -- let
+  S_Let : Substi s x t1 t1' -> Substi s x (Let x t1 t2) (Let x t1' t2)
+  S_LetY : Not (x = y) -> Substi s x t1 t1' -> Substi s x t2 t2' ->
+           Substi s x (Let y t1 t2) (Let y t1' t2')
+  -- lists
+  S_Nil : Substi s x (Nil ty) (Nil ty)
+  S_Cons : Substi s x t1 t1' -> Substi s x t2 t2' ->
+           Substi s x (Cons t1 t2) (Cons t1' t2')
+  S_LCase : Substi s x t t' -> Substi s x t1 t1' ->
+            Substi s x (LCase t t1 x x t2) (LCase t' t1' x x t2)
+  S_LCaseY : Not (x = y) -> Substi s x t t' -> Substi s x t1 t1' ->
+             Substi s x (LCase t t1 y x t2) (LCase t' t1' y x t2)
+  S_LCaseZ : Not (x = z) -> Substi s x t t' -> Substi s x t1 t1' ->
+             Substi s x (LCase t t1 x z t2) (LCase t' t1' x z t2)
+  S_LCaseYZ : Not (x = y) -> Not (x = z) -> Substi s x t t' ->
+              Substi s x t1 t1' -> Substi s x t2 t2' ->
+              Substi s x (LCase t t1 y z t2) (LCase t' t1' y z t2')
+  -- numbers
   S_Const : Substi s x (Const n) (Const n)
   S_Scc : Substi s x t t' -> Substi s x (Scc t) (Scc t')
   S_Prd : Substi s x t t' -> Substi s x (Prd t) (Prd t')
   S_Mult : Substi s x t1 t1' -> Substi s x t2 t2' ->
            Substi s x (Mult t1 t2) (Mult t1' t2')
   S_IsZro : Substi s x t t' -> Substi s x (IsZro t) (IsZro t')
-  S_Tru : Substi s x Tru Tru
-  S_Fls : Substi s x Fls Fls
-  S_Test : Substi s x t1 t1' -> Substi s x t2 t2' -> Substi s x t3 t3' ->
-           Substi s x (Test t1 t2 t3) (Test t1' t2' t3')
+  -- pairs
+  S_Pair : Substi s x t1 t1' -> Substi s x t2 t2' ->
+           Substi s x (Pair t1 t2) (Pair t1' t2')
+  S_Fst : Substi s x t t' -> Substi s x (Fst t) (Fst t')
+  S_Snd : Substi s x t t' -> Substi s x (Snd t) (Snd t')
+  -- sums
+  S_InL : Substi s x t t' -> Substi s x (InL ty t) (InL ty t')
+  S_InR : Substi s x t t' -> Substi s x (InR ty t) (InR ty t')
+  S_SCase : Substi s x t t' ->
+            Substi s x (SCase t x t1 x t2) (SCase t' x t1 x t2)
+  S_SCaseY : Not (x = y) -> Substi s x t t' -> Substi s x t1 t1' ->
+             Substi s x (SCase t y t1 x t2) (SCase t' y t1' x t2)
+  S_SCaseZ : Not (x = z) -> Substi s x t t' -> Substi s x t2 t2' ->
+             Substi s x (SCase t x t1 z t2) (SCase t' x t1 z t2')
+  S_SCaseYZ : Not (x = y) -> Not (x = z) -> Substi s x t t' ->
+              Substi s x t1 t1' -> Substi s x t2 t2' ->
+              Substi s x (SCase t y t1 z t2) (SCase t' y t1' z t2')
+  -- units
+  S_Unit : Substi s x Unit Unit
 
 data Step : Tm -> Tm -> Type where
   -- pure STLC
