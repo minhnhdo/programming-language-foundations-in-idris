@@ -16,11 +16,33 @@ cannonical_forms_bool _ V_Fls = Right Refl
 
 cannonical_forms_fun : HasType Maps.empty t (TyArrow ty1 ty2) -> Value t ->
                        (x : Id ** u : Tm ** t = Abs x ty1 u)
-cannonical_forms_fun (T_Abs {t12} ty) (V_Abs {x}) = (x ** t12 ** Refl)
+cannonical_forms_fun (T_Abs {t12} _) (V_Abs {x}) = (x ** t12 ** Refl)
+
+cannonical_forms_list : HasType Maps.empty t (TyList ty) -> Value t ->
+                        Either (t = Nil ty)
+                               (th : Tm ** tt : Tm ** ( Value th
+                                                      , Value tt
+                                                      , t = Cons th tt ))
+cannonical_forms_list T_Nil V_Nil = Left Refl
+cannonical_forms_list _ (V_Cons {th} {tt} vh vt) =
+  Right (th ** tt ** (vh, vt, Refl))
 
 cannonical_forms_nat : HasType Maps.empty t TyNat -> Value t ->
                        (n : Nat ** t = Const n)
 cannonical_forms_nat T_Const (V_Const {n}) = (n ** Refl)
+
+cannonical_forms_pair : HasType Maps.empty t (TyProd ty1 ty2) -> Value t ->
+                        (t1 : Tm ** t2 : Tm ** ( Value t1
+                                               , Value t2
+                                               , t = Pair t1 t2 ))
+cannonical_forms_pair _ (V_Pair {t1} {t2} v1 v2) =
+  (t1 ** t2 ** (v1, v2, Refl))
+
+cannonical_forms_sum : HasType Maps.empty t (TySum ty1 ty2) -> Value t ->
+                       Either (t1 : Tm ** (Value t1, t = InL ty1 t1))
+                              (t2 : Tm ** (Value t2, t = InR ty2 t2))
+cannonical_forms_sum (T_InL _) (V_InL {t} v) = Left (t ** (v, Refl))
+cannonical_forms_sum (T_InR _) (V_InR {t} v) = Right (t ** (v, Refl))
 
 progress : HasType Maps.empty t ty -> Either (Value t) (t' : Tm ** (t -+> t'))
 progress (T_Var prf) = absurd prf
@@ -36,7 +58,7 @@ progress T_Const = Left V_Const
 progress (T_Scc ht) = case progress ht of
   Left v => let (n ** prf) = cannonical_forms_nat ht v
             in rewrite prf
-            in Right (Const (S n) ** ST_SccConst V_Const)
+            in Right (Const (S n) ** ST_SccConst)
   Right (t' ** s) => Right (Scc t' ** ST_Scc s)
 progress (T_Prd ht) = case progress ht of
   Left v => let (n ** prf) = cannonical_forms_nat ht v
@@ -52,7 +74,7 @@ progress (T_Mult {t1} {t2} ht1 ht2) = case progress ht1 of
                in rewrite prf1
                in rewrite prf2
                in Right (Const (n1 * n2) ** ST_MultConstConst)
-    Right (t2' ** s2) => Right (Mult t1 t2' ** ST_Mult2 s2)
+    Right (t2' ** s2) => Right (Mult t1 t2' ** ST_Mult2 v1 s2)
   Right (t1' ** s1) => Right (Mult t1' t2 ** ST_Mult1 s1)
 progress (T_IsZro ht) = case progress ht of
   Left v => let (n ** prf) = cannonical_forms_nat ht v
@@ -70,6 +92,57 @@ progress (T_Test {t2} {t3} ht1 ht2 ht3) = case progress ht1 of
     Right prf => rewrite prf
                  in Right (t3 ** ST_TestFls)
   Right (t1' ** s1) => Right (Test t1' t2 t3 ** ST_Test s1)
+progress (T_Fix {ty} ht) = case progress ht of
+  Left v => let (x ** t ** prf) = cannonical_forms_fun ht v
+            in rewrite prf
+            in Right (subst x (Fix (Abs x ty t)) t ** ST_FixAbs)
+  Right (t' ** s) => Right (Fix t' ** ST_Fix s)
+progress (T_Let {x} {t1} {t2} ht1 ht2) = case progress ht1 of
+  Left v1 => Right (subst x t1 t2 ** ST_LetValue v1)
+  Right (t1' ** s1) => Right (Let x t1' t2 ** ST_Let s1)
+progress T_Nil = Left V_Nil
+progress (T_Cons {th} {tt} ht1 ht2) = case progress ht1 of
+  Left v1 => case progress ht2 of
+    Left v2 =>  Left (V_Cons v1 v2)
+    Right (tt' ** s2) =>  Right (Cons th tt' ** ST_Cons2 v1 s2)
+  Right (th' ** s1) => Right (Cons th' tt ** ST_Cons1 s1)
+progress (T_LCase {t} {t1} {t2} {y} {z} ht ht2 ht3) = case progress ht of
+  Left v => case cannonical_forms_list ht v of
+    Left prf => rewrite prf
+                in Right (t1 ** ST_LCaseNil)
+    Right (th ** tt ** (vh, vt, prf)) =>
+      rewrite prf
+      in Right (subst z tt (subst y th t2) ** ST_LCaseCons vh vt)
+  Right (t' ** s) => Right (LCase t' t1 y z t2 ** ST_LCase s)
+progress (T_Pair {t1} {t2} ht1 ht2) = case progress ht1 of
+  Left v1 => case progress ht2 of
+    Left v2 => Left (V_Pair v1 v2)
+    Right (t2' ** s2) => Right (Pair t1 t2' ** ST_Pair2 v1 s2)
+  Right (t1' ** s1) => Right (Pair t1' t2 ** ST_Pair1 s1)
+progress (T_Fst ht) = case progress ht of
+  Left v => case cannonical_forms_pair ht v of
+    (t1 ** _ ** (v1, v2, prf)) => rewrite prf
+                                  in Right (t1 ** ST_FstPair (V_Pair v1 v2))
+  Right (t' ** s) => Right (Fst t' ** ST_Fst s)
+progress (T_Snd ht) = case progress ht of
+  Left v => case cannonical_forms_pair ht v of
+    (_ ** t2 ** (v1, v2, prf)) => rewrite prf
+                                  in Right (t2 ** ST_SndPair (V_Pair v1 v2))
+  Right (t' ** s) => Right (Snd t' ** ST_Snd s)
+progress (T_InL {ty1} ht) = case progress ht of
+  Left v => Left (V_InL v)
+  Right (t' ** s) => Right (InL ty1 t' ** ST_InL s)
+progress (T_InR {ty2} ht) = case progress ht of
+  Left v => Left (V_InR v)
+  Right (t' ** s) => Right (InR ty2 t' ** ST_InR s)
+progress (T_SCase {t} {y} {t1} {z} {t2} ht ht1 ht2) = case progress ht of
+  Left v => case cannonical_forms_sum ht v of
+    Left (t ** (v, prf)) => rewrite prf
+                            in Right (subst y t t1 ** ST_SCaseInL v)
+    Right (t ** (v, prf)) => rewrite prf
+                             in Right (subst z t t2 ** ST_SCaseInR v)
+  Right (t' ** s) => Right (SCase t' y t1 z t2 ** ST_SCase s)
+progress T_Unit = Left V_Unit
 
 data AppearsFreeIn : Id -> Tm -> Type where
   AFI_Var : AppearsFreeIn x (Var x)
@@ -271,14 +344,15 @@ preservation (T_App (T_Abs ht1) ht2) (ST_AppAbs v) =
   substitution_preserves_typing ht1 ht2
 preservation (T_App ht1 ht2) (ST_App1 s1) = T_App (preservation ht1 s1) ht2
 preservation (T_App ht1 ht2) (ST_App2 v1 s2) = T_App ht1 (preservation ht2 s2)
-preservation (T_Scc _) (ST_SccConst _) = T_Const
+preservation (T_Scc _) ST_SccConst = T_Const
 preservation (T_Scc ht) (ST_Scc s) = T_Scc (preservation ht s)
 preservation (T_Prd _) ST_PrdZro = T_Const
 preservation (T_Prd _) ST_PrdScc = T_Const
 preservation (T_Prd ht) (ST_Prd s) = T_Prd (preservation ht s)
 preservation (T_Mult _ _) ST_MultConstConst = T_Const
 preservation (T_Mult ht1 ht2) (ST_Mult1 s1) = T_Mult (preservation ht1 s1) ht2
-preservation (T_Mult ht1 ht2) (ST_Mult2 s2) = T_Mult ht1 (preservation ht2 s2)
+preservation (T_Mult ht1 ht2) (ST_Mult2 v1 s2) =
+  T_Mult ht1 (preservation ht2 s2)
 preservation (T_IsZro _) ST_IsZroZro = T_Tru
 preservation (T_IsZro _) ST_IsZroScc = T_Fls
 preservation (T_IsZro ht) (ST_IsZro s) = T_IsZro (preservation ht s)

@@ -60,7 +60,7 @@ data Value : Tm -> Type where
   V_Tru : Value Tru
   V_Fls : Value Fls
   V_Nil : Value (Nil ty)
-  V_Cons : Value vh -> Value vt -> Value (Cons vh vt)
+  V_Cons : Value th -> Value tt -> Value (Cons th tt)
   V_InL : Value t -> Value (InL ty t)
   V_InR : Value t -> Value (InR ty t)
   V_Unit : Value Unit
@@ -196,9 +196,9 @@ data Step : Tm -> Tm -> Type where
   ST_Cons2 : Value v1 -> Step t2 t2' -> Step (Cons v1 t2) (Cons v1 t2')
   ST_LCase : Step t t' -> Step (LCase t t1 y z t2) (LCase t' t1 y z t2)
   ST_LCaseNil : Step (LCase (Nil ty) t1 y z t2) t1
-  ST_LCaseCons : Value vh -> Value vt ->
-                 Step (LCase (Cons vh vt) t1 y z t2)
-                      (subst z vt (subst y vh t2))
+  ST_LCaseCons : Value th -> Value tt ->
+                 Step (LCase (Cons th tt) t1 y z t2)
+                      (subst z tt (subst y th t2))
   -- numbers
   ST_SccConst : Step (Scc (Const n)) (Const (S n))
   ST_Scc : Step t t' -> Step (Scc t) (Scc t')
@@ -275,9 +275,9 @@ data HasType : Context -> Tm -> Ty -> Type where
   T_Cons : HasType gamma th ty -> HasType gamma tt (TyList ty) ->
            HasType gamma (Cons th tt) (TyList ty)
   T_LCase : HasType gamma t (TyList ty1) ->
-            HasType gamma t2 ty ->
-            HasType (update y ty1 (update z (TyList ty1) gamma)) t3 ty ->
-            HasType gamma (LCase t t2 y z t3) ty
+            HasType gamma t1 ty ->
+            HasType (update y ty1 (update z (TyList ty1) gamma)) t2 ty ->
+            HasType gamma (LCase t t1 y z t2) ty
   -- numbers
   T_Const : HasType gamma (Const n) TyNat
   T_Scc : HasType gamma t TyNat -> HasType gamma (Scc t) TyNat
@@ -294,8 +294,8 @@ data HasType : Context -> Tm -> Ty -> Type where
   T_InL : HasType gamma t1 ty1 -> HasType gamma (InL ty1 t1) (TySum ty1 ty2)
   T_InR : HasType gamma t2 ty2 -> HasType gamma (InR ty2 t2) (TySum ty1 ty2)
   T_SCase : HasType gamma t (TySum ty1 ty2) ->
-            HasType (update x ty1 gamma) t1 ty ->
-            HasType (update y ty2 gamma) t2 ty ->
-            HasType gamma (SCase t x t1 y t2) ty
+            HasType (update y ty1 gamma) t1 ty ->
+            HasType (update z ty2 gamma) t2 ty ->
+            HasType gamma (SCase t y t1 z t2) ty
   -- unit
   T_Unit : HasType gamma Unit TyUnit
