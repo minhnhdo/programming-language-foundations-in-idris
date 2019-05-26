@@ -145,18 +145,46 @@ progress (T_SCase {t} {y} {t1} {z} {t2} ht ht1 ht2) = case progress ht of
 progress T_Unit = Left V_Unit
 
 data AppearsFreeIn : Id -> Tm -> Type where
+  -- pure STLC
   AFI_Var : AppearsFreeIn x (Var x)
   AFI_App1 : AppearsFreeIn x t1 -> AppearsFreeIn x (App t1 t2)
   AFI_App2 : AppearsFreeIn x t2 -> AppearsFreeIn x (App t1 t2)
   AFI_Abs : Not (y = x) -> AppearsFreeIn x t -> AppearsFreeIn x (Abs y ty t)
+  -- booleans
+  AFI_Test1 : AppearsFreeIn x t1 -> AppearsFreeIn x (Test t1 t2 t3)
+  AFI_Test2 : AppearsFreeIn x t2 -> AppearsFreeIn x (Test t1 t2 t3)
+  AFI_Test3 : AppearsFreeIn x t3 -> AppearsFreeIn x (Test t1 t2 t3)
+  -- fix
+  AFI_Fix : AppearsFreeIn x t -> AppearsFreeIn x (Fix t)
+  -- let
+  AFI_Let1 : AppearsFreeIn x t1 -> AppearsFreeIn x (Let y t1 t2)
+  AFI_Let2 : Not (y = x) -> AppearsFreeIn x t2 -> AppearsFreeIn x (Let y t1 t2)
+  -- lists
+  AFI_Cons1 : AppearsFreeIn x t1 -> AppearsFreeIn x (Cons t1 t2)
+  AFI_Cons2 : AppearsFreeIn x t2 -> AppearsFreeIn x (Cons t1 t2)
+  AFI_LCase1 : AppearsFreeIn x t1 -> AppearsFreeIn x (LCase t1 t2 y z t3)
+  AFI_LCase2 : AppearsFreeIn x t2 -> AppearsFreeIn x (LCase t1 t2 y z t3)
+  AFI_LCase3 : Not (y = x) -> Not (z = x) -> AppearsFreeIn x t3 ->
+               AppearsFreeIn x (LCase t1 t2 y z t3)
+  -- numbers
   AFI_Scc : AppearsFreeIn x t -> AppearsFreeIn x (Scc t)
   AFI_Prd : AppearsFreeIn x t -> AppearsFreeIn x (Prd t)
   AFI_Mult1 : AppearsFreeIn x t1 -> AppearsFreeIn x (Mult t1 t2)
   AFI_Mult2 : AppearsFreeIn x t2 -> AppearsFreeIn x (Mult t1 t2)
   AFI_IsZro : AppearsFreeIn x t -> AppearsFreeIn x (IsZro t)
-  AFI_Test1 : AppearsFreeIn x t1 -> AppearsFreeIn x (Test t1 t2 t3)
-  AFI_Test2 : AppearsFreeIn x t2 -> AppearsFreeIn x (Test t1 t2 t3)
-  AFI_Test3 : AppearsFreeIn x t3 -> AppearsFreeIn x (Test t1 t2 t3)
+  -- pairs
+  AFI_Pair1 : AppearsFreeIn x t1 -> AppearsFreeIn x (Pair t1 t2)
+  AFI_Pair2 : AppearsFreeIn x t2 -> AppearsFreeIn x (Pair t1 t2)
+  AFI_Fst : AppearsFreeIn x t -> AppearsFreeIn x (Fst t)
+  AFI_Snd : AppearsFreeIn x t -> AppearsFreeIn x (Snd t)
+  -- sums
+  AFI_InL : AppearsFreeIn x t -> AppearsFreeIn x (InL ty t)
+  AFI_InR : AppearsFreeIn x t -> AppearsFreeIn x (InR ty t)
+  AFI_SCase1 : AppearsFreeIn x t1 -> AppearsFreeIn x (SCase t1 y t2 z t3)
+  AFI_SCase2 : Not (y = x) -> AppearsFreeIn x t2 ->
+               AppearsFreeIn x (SCase t1 y t2 z t3)
+  AFI_SCase3 : Not (z = x) -> AppearsFreeIn x t3 ->
+               AppearsFreeIn x (SCase t1 y t2 z t3)
 
 Closed : (t : Tm) -> Type
 Closed t = (x : Id) -> Not (AppearsFreeIn x t)
@@ -179,6 +207,36 @@ free_in_context (AFI_IsZro afi) (T_IsZro ht) = free_in_context afi ht
 free_in_context (AFI_Test1 afi) (T_Test ht1 _ _) = free_in_context afi ht1
 free_in_context (AFI_Test2 afi) (T_Test _ ht2 _) = free_in_context afi ht2
 free_in_context (AFI_Test3 afi) (T_Test _ _ ht3) = free_in_context afi ht3
+free_in_context (AFI_Fix afi) (T_Fix ht) = free_in_context afi ht
+free_in_context (AFI_Let1 afi) (T_Let ht1 _) = free_in_context afi ht1
+free_in_context {gamma} (AFI_Let2 {y} {x} contra afi) (T_Let {ty1} _ ht2) =
+  rewrite sym (update_neq {m=gamma} {v=ty1} contra)
+  in free_in_context afi ht2
+free_in_context (AFI_Cons1 afi) (T_Cons ht1 _) = free_in_context afi ht1
+free_in_context (AFI_Cons2 afi) (T_Cons _ ht2) = free_in_context afi ht2
+free_in_context (AFI_LCase1 afi) (T_LCase ht _ _) = free_in_context afi ht
+free_in_context (AFI_LCase2 afi) (T_LCase _ ht1 _) = free_in_context afi ht1
+free_in_context {gamma}
+                (AFI_LCase3 contra1 contra2 afi)
+                (T_LCase {ty1} {y} {z} _ _ ht2) =
+  let prf1 = update_neq {x2=y} {m=gamma} {v=ty1} contra1
+      prf2 = update_neq {x2=z} {m=gamma} {v=TyList ty1} contra2
+  in rewrite sym prf1
+  in rewrite sym prf2
+  in free_in_context afi ht2
+free_in_context (AFI_Pair1 afi) (T_Pair ht1 _) = free_in_context afi ht1
+free_in_context (AFI_Pair2 afi) (T_Pair _ ht2) = free_in_context afi ht2
+free_in_context (AFI_Fst afi) (T_Fst ht) = free_in_context afi ht
+free_in_context (AFI_Snd afi) (T_Snd ht) = free_in_context afi ht
+free_in_context (AFI_InL afi) (T_InL ht) = free_in_context afi ht
+free_in_context (AFI_InR afi) (T_InR ht) = free_in_context afi ht
+free_in_context (AFI_SCase1 afi) (T_SCase ht _ _) = free_in_context afi ht
+free_in_context {gamma} (AFI_SCase2 contra afi) (T_SCase {ty1} _ ht1 _) =
+  rewrite sym (update_neq {m=gamma} {v=ty1} contra)
+  in free_in_context afi ht1
+free_in_context {gamma} (AFI_SCase3 contra afi) (T_SCase {ty2} _ _ ht2) =
+  rewrite sym (update_neq {m=gamma} {v=ty2} contra)
+  in free_in_context afi ht2
 
 typeable_empty__closed : HasType Maps.empty t ty -> Closed t
 typeable_empty__closed (T_Var prf) = absurd prf
