@@ -386,6 +386,93 @@ where f1 : (y : Id) -> AppearsFreeIn y t1 -> gamma y = gamma' y
       f2 y afi = f y (AFI_Test2 afi)
       f3 : (y : Id) -> AppearsFreeIn y t3 -> gamma y = gamma' y
       f3 y afi = f y (AFI_Test3 afi)
+context_invariance {gamma} {gamma'} (T_Fix {t} ht) f =
+  T_Fix (context_invariance ht f')
+where f' : (y : Id) -> AppearsFreeIn y t -> gamma y = gamma' y
+      f' y afi = f y (AFI_Fix afi)
+context_invariance {gamma} {gamma'}
+                   (T_Let {x=y} {t1} {t2} {ty1} ht1 ht2) f =
+  T_Let (context_invariance ht1 f1) (context_invariance ht2 f2)
+where f1 : (z : Id) -> AppearsFreeIn z t1 -> gamma z = gamma' z
+      f1 z afi = f z (AFI_Let1 afi)
+      f2 : (z : Id) -> AppearsFreeIn z t2 ->
+           (update y ty1 gamma) z = (update y ty1 gamma') z
+      f2 z afi with (decEq y z)
+        f2 z afi | Yes prf = rewrite snd beq_id_true_iff prf in Refl
+        f2 z afi | No contra = rewrite snd beq_id_false_iff contra
+                               in f z (AFI_Let2 contra afi)
+context_invariance T_Nil _ = T_Nil
+context_invariance {gamma} {gamma'} (T_Cons {th=t1} {tt=t2} ht1 ht2) f =
+  T_Cons (context_invariance ht1 f1) (context_invariance ht2 f2)
+where f1 : (y : Id) -> AppearsFreeIn y t1 -> gamma y = gamma' y
+      f1 y afi = f y (AFI_Cons1 afi)
+      f2 : (y : Id) -> AppearsFreeIn y t2 -> gamma y = gamma' y
+      f2 y afi = f y (AFI_Cons2 afi)
+context_invariance {gamma} {gamma'}
+                   (T_LCase {t} {ty1} {t1} {t2} {y} {z} ht ht1 ht2) f =
+  T_LCase (context_invariance ht f')
+          (context_invariance ht1 f1)
+          (context_invariance ht2 f2)
+where f' : (w : Id) -> AppearsFreeIn w t -> gamma w = gamma' w
+      f' w afi = f w (AFI_LCase1 afi)
+      f1 : (w : Id) -> AppearsFreeIn w t1 -> gamma w = gamma' w
+      f1 w afi = f w (AFI_LCase2 afi)
+      f2 : (w : Id) -> AppearsFreeIn w t2 ->
+           (update y ty1 (update z (TyList ty1) gamma)) w
+           = (update y ty1 (update z (TyList ty1) gamma')) w
+      f2 w afi with (decEq y w)
+        f2 w afi | Yes prf = rewrite snd beq_id_true_iff prf in Refl
+        f2 w afi | No contra1 with (decEq z w)
+          f2 w afi | No contra1 | Yes prf =
+            rewrite snd beq_id_false_iff contra1
+            in rewrite snd beq_id_true_iff prf
+            in Refl
+          f2 w afi | No contra1 | No contra2 =
+            rewrite snd beq_id_false_iff contra1
+            in rewrite snd beq_id_false_iff contra2
+            in f w (AFI_LCase3 contra1 contra2 afi)
+context_invariance {gamma} {gamma'} (T_Pair {t1} {t2} ht1 ht2) f =
+  T_Pair (context_invariance ht1 f1) (context_invariance ht2 f2)
+where f1 : (y : Id) -> AppearsFreeIn y t1 -> gamma y = gamma' y
+      f1 y afi = f y (AFI_Pair1 afi)
+      f2 : (y : Id) -> AppearsFreeIn y t2 -> gamma y = gamma' y
+      f2 y afi = f y (AFI_Pair2 afi)
+context_invariance {gamma} {gamma'} (T_Fst {t} ht) f =
+  T_Fst (context_invariance ht f')
+where f' : (y : Id) -> AppearsFreeIn y t -> gamma y = gamma' y
+      f' y afi = f y (AFI_Fst afi)
+context_invariance {gamma} {gamma'} (T_Snd {t} ht) f =
+  T_Snd (context_invariance ht f')
+where f' : (y : Id) -> AppearsFreeIn y t -> gamma y = gamma' y
+      f' y afi = f y (AFI_Snd afi)
+context_invariance {gamma} {gamma'} (T_InL {t1=t} ht) f =
+  T_InL (context_invariance ht f')
+where f' : (y : Id) -> AppearsFreeIn y t -> gamma y = gamma' y
+      f' y afi = f y (AFI_InL afi)
+context_invariance {gamma} {gamma'} (T_InR {t2=t} ht) f =
+  T_InR (context_invariance ht f')
+where f' : (y : Id) -> AppearsFreeIn y t -> gamma y = gamma' y
+      f' y afi = f y (AFI_InR afi)
+context_invariance {gamma} {gamma'}
+                   (T_SCase {t} {y} {t1} {z} {t2} {ty1} {ty2} ht ht1 ht2) f =
+  T_SCase (context_invariance ht f')
+          (context_invariance ht1 f1)
+          (context_invariance ht2 f2)
+where f' : (w : Id) -> AppearsFreeIn w t -> gamma w = gamma' w
+      f' w afi = f w (AFI_SCase1 afi)
+      f1 : (w : Id) -> AppearsFreeIn w t1 ->
+           (update y ty1 gamma) w = (update y ty1 gamma') w
+      f1 w afi with (decEq y w)
+        f1 w afi | Yes prf = rewrite snd beq_id_true_iff prf in Refl
+        f1 w afi | No contra = rewrite snd beq_id_false_iff contra
+                               in f w (AFI_SCase2 contra afi)
+      f2 : (w : Id) -> AppearsFreeIn w t2 ->
+           (update z ty2 gamma) w = (update z ty2 gamma') w
+      f2 w afi with (decEq z w)
+        f2 w afi | Yes prf = rewrite snd beq_id_true_iff prf in Refl
+        f2 w afi | No contra = rewrite snd beq_id_false_iff contra
+                               in f w (AFI_SCase3 contra afi)
+context_invariance T_Unit _ = T_Unit
 
 substitution_preserves_typing : HasType (Maps.update x ty2 gamma) t ty ->
                                 HasType Maps.empty v ty2 ->
