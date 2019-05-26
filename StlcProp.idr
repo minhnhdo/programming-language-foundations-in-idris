@@ -280,6 +280,55 @@ typeable_empty__closed (T_Test ht1 ht2 ht3) = \_, afi => case afi of
                    in uninhabited prf
   AFI_Test3 afi => let (_ ** prf) = free_in_context afi ht3
                    in uninhabited prf
+typeable_empty__closed (T_Fix ht) = \_, afi => case afi of
+  AFI_Fix afi => let (_ ** prf) = free_in_context afi ht
+                 in uninhabited prf
+typeable_empty__closed (T_Let {t2} {ty1} {ty2} ht1 ht2) = \_, afi => case afi of
+    AFI_Let1 afi => let (_ ** prf) = free_in_context afi ht1
+                    in uninhabited prf
+    AFI_Let2 contra afi => let pf = update_neq {m=empty} {v=ty1} contra
+                               ht2' = replace {P=\r => HasType r t2 ty2}
+                                              (?rhs1)
+                                              ht2
+                               -- (_ ** prf) = free_in_context afi ht2'
+                           in ?rhs -- uninhabited prf
+typeable_empty__closed T_Nil = \_, afi => case afi of
+  AFI_Var impossible
+typeable_empty__closed (T_Cons ht1 ht2) = \_, afi => case afi of
+  AFI_Cons1 afi => let (_ ** prf) = free_in_context afi ht1
+                   in uninhabited prf
+  AFI_Cons2 afi => let (_ ** prf) = free_in_context afi ht2
+                   in uninhabited prf
+typeable_empty__closed (T_LCase ht ht1 ht2) = \_, afi => case afi of
+  AFI_LCase1 afi => let (_ ** prf) = free_in_context afi ht
+                    in uninhabited prf
+  AFI_LCase2 afi => let (_ ** prf) = free_in_context afi ht1
+                    in uninhabited prf
+  AFI_LCase3 contra1 contra2 afi => ?typeable_empty__closed_rhs_3
+typeable_empty__closed (T_Pair ht1 ht2) = \_, afi => case afi of
+  AFI_Pair1 afi => let (_ ** prf) = free_in_context afi ht1
+                   in uninhabited prf
+  AFI_Pair2 afi => let (_ ** prf) = free_in_context afi ht2
+                   in uninhabited prf
+typeable_empty__closed (T_Fst ht) = \_, afi => case afi of
+  AFI_Fst afi => let (_ ** prf) = free_in_context afi ht
+                 in uninhabited prf
+typeable_empty__closed (T_Snd ht) = \_, afi => case afi of
+  AFI_Snd afi => let (_ ** prf) = free_in_context afi ht
+                 in uninhabited prf
+typeable_empty__closed (T_InL ht) = \_, afi => case afi of
+  AFI_InL afi => let (_ ** prf) = free_in_context afi ht
+                 in uninhabited prf
+typeable_empty__closed (T_InR ht) = \_, afi => case afi of
+  AFI_InR afi => let (_ ** prf) = free_in_context afi ht
+                 in uninhabited prf
+typeable_empty__closed (T_SCase ht ht1 ht2) = \_, afi => case afi of
+  AFI_SCase1 afi => let (_ ** prf) = free_in_context afi ht
+                    in uninhabited prf
+  AFI_SCase2 contra afi => ?typeable_empty__closed_rhs_7
+  AFI_SCase3 contra afi => ?typeable_empty__closed_rhs_8
+typeable_empty__closed T_Unit = \_, afi => case afi of
+  AFI_Var impossible
 
 context_invariance : HasType gamma t ty ->
                      ((x : Id) -> AppearsFreeIn x t -> gamma x = gamma' x) ->
