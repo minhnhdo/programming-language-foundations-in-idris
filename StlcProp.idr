@@ -585,20 +585,8 @@ soundness ht MultiRefl (nf, not_value) = case progress ht of
 soundness ht (MultiStep once next) (nf, not_value) =
   soundness (preservation ht once) next (nf, not_value)
 
-unique_types : HasType gamma e ty -> HasType gamma e ty' -> ty = ty'
-unique_types (T_Var prf1) (T_Var prf2) = justInjective (trans (sym prf1) prf2)
-unique_types (T_Abs ht1) (T_Abs ht2) = rewrite unique_types ht1 ht2 in Refl
-unique_types {ty} {ty'} (T_App ht1 ht2) (T_App {ty11=ty2} ht3 ht4) =
-  let prf = replace {P=\r => TyArrow r ty = TyArrow ty2 ty'}
-                    (unique_types ht2 ht4)
-                    (unique_types ht1 ht3)
-  in case prf of
-    Refl => Refl
-unique_types T_Const T_Const = Refl
-unique_types (T_Scc _) (T_Scc _) = Refl
-unique_types (T_Prd _) (T_Prd _) = Refl
-unique_types (T_Mult _ _) (T_Mult _ _) = Refl
-unique_types (T_IsZro _) (T_IsZro _) = Refl
-unique_types T_Tru T_Tru = Refl
-unique_types T_Fls T_Fls = Refl
-unique_types (T_Test _ ht1 _) (T_Test _ ht2 _) = unique_types ht1 ht2
+unique_types : (  t : Tm ** ty : Ty ** ty' : Ty
+               ** (HasType gamma t ty, HasType gamma t ty', Not (ty = ty')) )
+unique_types =
+  (  InL TyNat (Const 0) ** TySum TyNat TyNat ** TySum TyNat TyBool
+  ** (T_InL T_Const, T_InL T_Const, \prf => case prf of Refl impossible) )
