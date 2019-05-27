@@ -561,6 +561,35 @@ preservation (T_Test _ ht2 _) ST_TestTru = ht2
 preservation (T_Test _ _ ht3) ST_TestFls = ht3
 preservation (T_Test ht1 ht2 ht3) (ST_Test s) =
   T_Test (preservation ht1 s) ht2 ht3
+preservation ht@(T_Fix (T_Abs htb)) ST_FixAbs =
+  substitution_preserves_typing htb ht
+preservation (T_Fix ht) (ST_Fix s) = T_Fix (preservation ht s)
+preservation (T_Let ht1 ht2) (ST_LetValue _) =
+  substitution_preserves_typing ht2 ht1
+preservation (T_Let ht1 ht2) (ST_Let s1) = T_Let (preservation ht1 s1) ht2
+preservation (T_Cons ht1 ht2) (ST_Cons1 s1) = T_Cons (preservation ht1 s1) ht2
+preservation (T_Cons ht1 ht2) (ST_Cons2 _ s2) =
+  T_Cons ht1 (preservation ht2 s2)
+preservation (T_LCase ht ht1 ht2) (ST_LCase s) =
+  T_LCase (preservation ht s) ht1 ht2
+preservation (T_LCase _ ht1 _) ST_LCaseNil = ht1
+preservation (T_LCase (T_Cons hth htt) _ ht2) (ST_LCaseCons _ _) =
+  substitution_preserves_typing (substitution_preserves_typing ht2 hth) htt
+preservation (T_Pair ht1 ht2) (ST_Pair1 s1) = T_Pair (preservation ht1 s1) ht2
+preservation (T_Pair ht1 ht2) (ST_Pair2 _ s2) =
+  T_Pair ht1 (preservation ht2 s2)
+preservation (T_Fst (T_Pair ht1 _)) (ST_FstPair _) = ht1
+preservation (T_Fst ht) (ST_Fst s) = T_Fst (preservation ht s)
+preservation (T_Snd (T_Pair _ ht2)) (ST_SndPair _) = ht2
+preservation (T_Snd ht) (ST_Snd s) = T_Snd (preservation ht s)
+preservation (T_InL ht) (ST_InL s) = T_InL (preservation ht s)
+preservation (T_InR ht) (ST_InR s) = T_InR (preservation ht s)
+preservation (T_SCase ht ht1 ht2) (ST_SCase s) =
+  T_SCase (preservation ht s) ht1 ht2
+preservation (T_SCase (T_InL ht) ht1 _) (ST_SCaseInL _) =
+  substitution_preserves_typing ht1 ht
+preservation (T_SCase (T_InR ht) _ ht2) (ST_SCaseInR _) =
+  substitution_preserves_typing ht2 ht
 
 subject_expansion : (  t : Tm ** t' : Tm ** ty : Ty
                     ** ( t -+> t'
