@@ -477,28 +477,28 @@ context_invariance T_Unit _ = T_Unit
 substitution_preserves_typing : HasType (Maps.update x ty2 gamma) t ty ->
                                 HasType Maps.empty v ty2 ->
                                 HasType gamma (subst x v t) ty
-substitution_preserves_typing {x} {ty2} {ty} {gamma} {t = Var y} (T_Var prf) htv
+substitution_preserves_typing {x} {ty2} {ty} {gamma} {t=Var y} (T_Var prf) htv
   with (decEq x y)
-  substitution_preserves_typing {x} {ty2} {ty} {gamma} {t = Var y}
-                                (T_Var prf) htv | Yes prf' =
-    let ty2_eq_ty = justInjective
-                      (replace
-                        {P=\r => (if r then Just ty2 else gamma y) = Just ty}
-                        (snd beq_id_true_iff prf')
-                        prf)
-    in rewrite sym ty2_eq_ty
-    in context_invariance htv (\z, afi =>
-                                absurd (typeable_empty__closed htv z afi))
-  substitution_preserves_typing {x} {ty2} {ty} {gamma} {t = Var y}
-                                (T_Var prf) htv | No contra =
-    T_Var (replace {P=\r => (if r then Just ty2 else gamma y) = Just ty}
-                   (snd beq_id_false_iff contra) prf)
+    substitution_preserves_typing {x} {ty2} {ty} {gamma} {t=Var y}
+                                  (T_Var prf) htv | Yes prf' =
+      let ty2_eq_ty = justInjective
+                        (replace
+                          {P=\r => (if r then Just ty2 else gamma y) = Just ty}
+                          (snd beq_id_true_iff prf')
+                          prf)
+      in rewrite sym ty2_eq_ty
+      in context_invariance htv (\z, afi =>
+                                  absurd (typeable_empty__closed htv z afi))
+    substitution_preserves_typing {x} {ty2} {ty} {gamma} {t=Var y}
+                                  (T_Var prf) htv | No contra =
+      T_Var (replace {P=\r => (if r then Just ty2 else gamma y) = Just ty}
+                     (snd beq_id_false_iff contra) prf)
 substitution_preserves_typing (T_App ht1 ht2) htv =
   T_App (substitution_preserves_typing ht1 htv)
         (substitution_preserves_typing ht2 htv)
-substitution_preserves_typing {x} {ty2} {gamma} {t = Abs y ty t}
+substitution_preserves_typing {x} {ty2} {gamma} {t=Abs y ty t}
                               (T_Abs {ty12} ht) htv with (decEq x y)
-    substitution_preserves_typing {x} {ty2} {gamma} {t = Abs y ty t}
+    substitution_preserves_typing {x} {ty2} {gamma} {t=Abs y ty t}
                                   (T_Abs {ty12} ht) htv | Yes prf =
       let ht' = replace
                   {P=\r => HasType r t ty12}
@@ -514,7 +514,7 @@ substitution_preserves_typing {x} {ty2} {gamma} {t = Abs y ty t}
                     prf
                     ht)
       in T_Abs ht'
-    substitution_preserves_typing {x} {ty2} {gamma} {t = Abs y ty t}
+    substitution_preserves_typing {x} {ty2} {gamma} {t=Abs y ty t}
                                   (T_Abs {ty12} ht) htv | No contra =
       T_Abs (substitution_preserves_typing
               (context_invariance
@@ -539,6 +539,99 @@ substitution_preserves_typing (T_Test ht1 ht2 ht3) htv =
   T_Test (substitution_preserves_typing ht1 htv)
          (substitution_preserves_typing ht2 htv)
          (substitution_preserves_typing ht3 htv)
+substitution_preserves_typing (T_Fix ht) htv =
+  T_Fix (substitution_preserves_typing ht htv)
+substitution_preserves_typing {x} {gamma} {ty2=ty3} {t=Let y t1 t2}
+                              (T_Let {ty1} {ty2} ht1 ht2) htv
+  with (decEq x y)
+    substitution_preserves_typing {x} {gamma} {ty2=ty3} {t=Let y t1 t2}
+                                  (T_Let {ty1} {ty2} ht1 ht2) htv
+    | Yes prf =
+      let gamma_prf = update_shadow {x=x} {v2=ty1} {v1=ty3} {m=gamma}
+      in T_Let (substitution_preserves_typing ht1 htv)
+               (rewrite sym prf
+                in rewrite sym gamma_prf
+                in replace {P=\r => HasType (update r ty1 (update x ty3 gamma))
+                                            t2
+                                            ty2}
+                           (sym prf) ht2)
+    substitution_preserves_typing {x} {gamma} {ty2=ty3} {t=Let y t1 t2}
+                                  (T_Let {ty1} {ty2} ht1 ht2) htv
+    | No contra =
+      let gamma_prf = update_permute {x1=y} {v1=ty1} {x2=x} {v2=ty3} {m=gamma}
+                                     contra
+      in T_Let (substitution_preserves_typing ht1 htv)
+               (substitution_preserves_typing
+                 (replace {P=\r => HasType r t2 ty2} gamma_prf ht2)
+                 htv)
+substitution_preserves_typing T_Nil _ = T_Nil
+substitution_preserves_typing (T_Cons ht1 ht2) htv =
+  T_Cons (substitution_preserves_typing ht1 htv)
+         (substitution_preserves_typing ht2 htv)
+substitution_preserves_typing {x} {gamma} {t=LCase t t1 y z t2}
+                              (T_LCase ht ht1 ht2) htv
+  with (decEq x y)
+    substitution_preserves_typing {x} {gamma} {t=LCase t t1 y z t2}
+                                  (T_LCase ht ht1 ht2) htv
+    | Yes prf1 with (decEq x z)
+      substitution_preserves_typing {x} {gamma} {t=LCase t t1 y z t2}
+                                    (T_LCase ht ht1 ht2) htv
+      | Yes prf1 | Yes prf2 =
+        T_LCase (substitution_preserves_typing ht htv)
+                (substitution_preserves_typing ht1 htv)
+                (?rhs1)
+      substitution_preserves_typing {x} {gamma} {t=LCase t t1 y z t2}
+                                    (T_LCase ht ht1 ht2) htv
+      | Yes prf1 | No contra2 =
+        T_LCase (substitution_preserves_typing ht htv)
+                (substitution_preserves_typing ht1 htv)
+                (?rhs)
+    substitution_preserves_typing {x} {gamma} {t=LCase t t1 y z t2}
+                                  (T_LCase ht ht1 ht2) htv
+    | No contra1 with (decEq x z)
+      substitution_preserves_typing {x} {gamma} {t=LCase t t1 y z t2}
+                                    (T_LCase ht ht1 ht2) htv
+      | No contra1 | Yes prf2 =
+        ?substitution_preserves_typing_rhs_5_rhs_2_1
+      substitution_preserves_typing {x} {gamma} {t=LCase t t1 y z t2}
+                                    (T_LCase ht ht1 ht2) htv
+      | No contra1 | No contra2 =
+        ?substitution_preserves_typing_rhs_5_rhs_2
+substitution_preserves_typing (T_Pair ht1 ht2) htv =
+  T_Pair (substitution_preserves_typing ht1 htv)
+         (substitution_preserves_typing ht2 htv)
+substitution_preserves_typing (T_Fst ht) htv =
+  T_Fst (substitution_preserves_typing ht htv)
+substitution_preserves_typing (T_Snd ht) htv =
+  T_Snd (substitution_preserves_typing ht htv)
+substitution_preserves_typing (T_InL ht) htv =
+  T_InL (substitution_preserves_typing ht htv)
+substitution_preserves_typing (T_InR ht) htv =
+  T_InR (substitution_preserves_typing ht htv)
+substitution_preserves_typing {x} {gamma} {t=SCase t y t1 z t2}
+                              (T_SCase ht ht1 ht2) htv with (decEq x y)
+  substitution_preserves_typing {x} {gamma} {t=SCase t y t1 z t2}
+                                (T_SCase ht ht1 ht2) htv
+  | Yes prf1 with (decEq x z)
+    substitution_preserves_typing {x} {gamma} {t=SCase t y t1 z t2}
+                                  (T_SCase ht ht1 ht2) htv
+    | Yes prf1 | Yes prf2 =
+      T_SCase (substitution_preserves_typing ht htv)
+              ?substitution_preserves_typing_rhs_11_rhs_rhs
+              ?rhs2
+    substitution_preserves_typing {x} {gamma} {t=SCase t y t1 z t2}
+                                  (T_SCase ht ht1 ht2) htv
+    | Yes prf1 | No contra2 = ?substitution_preserves_typing_rhs_11_rhs_rhs
+  substitution_preserves_typing {x} {gamma} {t=SCase t y t1 z t2}
+                                (T_SCase ht ht1 ht2) htv
+  | No contra1 with (decEq x z)
+    substitution_preserves_typing {x} {gamma} {t=SCase t y t1 z t2}
+                                  (T_SCase ht ht1 ht2) htv
+    | No contra1 | Yes prf2 = ?substitution_preserves_typing_rhs_11_rhs
+    substitution_preserves_typing {x} {gamma} {t=SCase t y t1 z t2}
+                                  (T_SCase ht ht1 ht2) htv
+    | No contra1 | No contra2 = ?substitution_preserves_typing_rhs_11_rhs
+substitution_preserves_typing T_Unit _ = T_Unit
 
 preservation : HasType Maps.empty t ty -> t -+> t' -> HasType Maps.empty t' ty
 preservation (T_App (T_Abs ht1) ht2) (ST_AppAbs v) =
