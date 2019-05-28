@@ -12,6 +12,24 @@ State = TotalMap Nat
 empty_state : State
 empty_state = t_empty 0
 
+A : Id
+A = MkId "A"
+
+B : Id
+B = MkId "B"
+
+C : Id
+C = MkId "C"
+
+D : Id
+D = MkId "D"
+
+E : Id
+E = MkId "E"
+
+F : Id
+F = MkId "F"
+
 W : Id
 W = MkId "W"
 
@@ -32,6 +50,24 @@ data AExp : Type where
   AMult : AExp -> AExp -> AExp
 
 namespace VariableNames
+  A : AExp
+  A = AId A
+
+  B : AExp
+  B = AId B
+
+  C : AExp
+  C = AId C
+
+  D : AExp
+  D = AId D
+
+  E : AExp
+  E = AId E
+
+  F : AExp
+  F = AId F
+
   W : AExp
   W = AId W
 
