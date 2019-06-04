@@ -11,6 +11,10 @@ notInvolutive True = Refl
 neqSym : Not (a = b) -> Not (b = a)
 neqSym contra prf = contra $ sym prf
 
+band : b1 && b2 = True -> (b1 = True, b2 = True)
+band {b1 = False} prf = absurd prf
+band {b1 = True} prf = (Refl, prf)
+
 n_eq_succ__n_neq_0 : n = S k -> Not (n = 0)
 n_eq_succ__n_neq_0 n_eq_succ n_eq_0 = SIsNotZ $ trans (sym n_eq_succ) n_eq_0
 
